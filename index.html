@@ -65,7 +65,7 @@ html:not(.is-loading) .curtain{opacity:0;visibility:hidden}
 @media (max-width:520px){.nav .btn{padding:10px 14px;font-size:12px}.brand small{display:none}}
 
 /* the 3D tour */
-.tour{position:relative;height:860vh}
+.tour{position:relative;height:960vh}
 .tour__sticky{position:sticky;top:0;height:100vh;height:100svh;overflow:hidden;background:#0b1220}
 #gl{display:block;width:100%;height:100%}
 .tour__sticky::after{content:"";position:absolute;inset:auto 0 0 0;height:42%;background:linear-gradient(to top,rgba(9,15,28,.78),rgba(9,15,28,0));pointer-events:none;opacity:var(--shade,1)}
@@ -308,7 +308,7 @@ footer .wrap{display:flex;flex-wrap:wrap;gap:12px 28px;justify-content:space-bet
     </div>
 
     <div class="rail" id="rail" aria-label="Tour chapters">
-      <button data-p=".08"><span>Arrival</span><i></i></button>
+      <button data-p=".04"><span>Arrival</span><i></i></button>
       <button data-p=".5"><span>Lobby</span><i></i></button>
       <button data-p="1"><span>Ground</span><i></i></button>
     </div>
@@ -1050,8 +1050,8 @@ const road = new THREE.Mesh(new THREE.PlaneGeometry(240, 10), new THREE.MeshStan
 road.rotation.x = -Math.PI / 2; road.position.set(0, .015, GZ + 11); road.receiveShadow = true; scene.add(road);
 
 // the gate: a cream arch with grey trims, a stepped cornice and the white wrought-iron crown
-const cream = new THREE.MeshStandardMaterial({color: '#e7dcc2', roughness: .78});
-const trim = new THREE.MeshStandardMaterial({color: '#9a948a', roughness: .7});
+const cream = new THREE.MeshStandardMaterial({color: '#e2d2ae', roughness: .8});
+const trim = new THREE.MeshStandardMaterial({color: '#77716a', roughness: .7});
 const GA = 3, GSPR = 4.3, GWID = 5.4, GHT = 8.2, GD = 1.3;   // arch radius, springing height, half width, height, depth
 (() => {
   const s = new THREE.Shape();
@@ -1062,7 +1062,7 @@ const GA = 3, GSPR = 4.3, GWID = 5.4, GHT = 8.2, GD = 1.3;   // arch radius, spr
   [GZ + GD / 2 + .02, GZ - GD / 2 - .02].forEach(z => {
     const ring = new THREE.Mesh(new THREE.TorusGeometry(GA + .16, .13, 10, 48, Math.PI), trim); ring.position.set(0, GSPR, z); scene.add(ring);
     [-1, 1].forEach(sd => { const j = new THREE.Mesh(new THREE.BoxGeometry(.26, GSPR, .26), trim); j.position.set(sd * (GA + .16), GSPR / 2, z); scene.add(j); });
-    [-1, 1].forEach(sd => { const pl = new THREE.Mesh(new THREE.BoxGeometry(.7, GHT - .4, .14), new THREE.MeshStandardMaterial({color: '#d8cbae', roughness: .8})); pl.position.set(sd * (GWID - .45), (GHT - .4) / 2, z); scene.add(pl); });
+    [-1, 1].forEach(sd => { const pl = new THREE.Mesh(new THREE.BoxGeometry(.7, GHT - .4, .14), new THREE.MeshStandardMaterial({color: '#c9b78f', roughness: .8})); pl.position.set(sd * (GWID - .45), (GHT - .4) / 2, z); scene.add(pl); });
   });
   const c1 = new THREE.Mesh(new THREE.BoxGeometry(GWID * 2 + .7, .32, GD + .4), trim); c1.position.set(0, GHT + .16, GZ); c1.castShadow = true; scene.add(c1);
   const c2 = new THREE.Mesh(new THREE.BoxGeometry(GWID * 2 + 1.2, .45, GD + .7), cream); c2.position.set(0, GHT + .55, GZ); c2.castShadow = true; scene.add(c2);
@@ -1090,7 +1090,7 @@ const GA = 3, GSPR = 4.3, GWID = 5.4, GHT = 8.2, GD = 1.3;   // arch radius, spr
     g.fillStyle = '#d71f26'; g.font = '700 150px "Baloo 2", Manrope, sans-serif'; g.textBaseline = 'middle'; g.fillText('Kautilya', 300, 140);
     g.fillStyle = '#1d2333'; g.font = '700 40px Manrope, sans-serif'; g.letterSpacing = '6px'; g.fillText('INTEGRATED EDUCATION', 308, 252);
   });
-  const nb = new THREE.Mesh(new RoundedBoxGeometry(3.4, 1.02, .1, 2, .03), [cream, cream, cream, cream, new THREE.MeshStandardMaterial({map: board, roughness: .5, emissive: '#ffffff', emissiveMap: board, emissiveIntensity: .15}), cream]);
+  const nb = new THREE.Mesh(new RoundedBoxGeometry(3.4, 1.02, .1, 2, .03), [cream, cream, cream, cream, new THREE.MeshStandardMaterial({map: board, roughness: .8, color: '#9c9c9c'}), cream]);
   nb.position.set(0, GSPR + 1.2, GZ + GD / 2 + .1); scene.add(nb);
 })();
 
@@ -1362,13 +1362,14 @@ const clear = (x, z) =>
   (z > LZ - 4 && z < GZ + 2 && Math.abs(x) < 47) ||                     // compound and building
   (Math.abs(x - bbX) < 11 && Math.abs(z - bbZ) < 18) ||                 // basketball court
   (Math.abs(x - (netX + 3.4)) < 8 && Math.abs(z - netZ) < 15) ||        // nets
-  Math.hypot(x, z - FZ) < GR + 3;                                        // the ground itself
+  Math.hypot(x, z - FZ) < GR + 3 ||                                      // the ground itself
+  (z > GZ - 2 && z < GZ + 48 && Math.abs(x) < 34);                      // the road in front of the gate: keep the view of it clear
 const addTree = (x, z, s, tall = 1) => { if (!clear(x, z)) treePts.push([x, z, s, tall]); };
 for (let a = 0; a < Math.PI * 2; a += small ? .09 : .062) { if (Math.cos(a) > .5) continue;   // open on the building side, as at the school
   const rr = GR + 7 + tr() * 5; addTree(Math.sin(a) * rr, FZ + Math.cos(a) * rr, 1 + tr() * .5, 1.7); }
 for (let z = 2; z < GZ - 2; z += small ? 8 : 5.5) { addTree(-52 - tr() * 6, z, .9 + tr() * .5); addTree(52 + tr() * 6, z, .9 + tr() * .5); }
 for (let i = 0; i < (small ? 40 : 90); i++) { const a = tr() * Math.PI * 2, rr = 95 + tr() * 140; addTree(Math.cos(a) * rr, FZ + Math.sin(a) * rr, 1 + tr() * .9); }
-for (let x = -60; x <= 60; x += small ? 9 : 6) if (Math.abs(x) > 10) addTree(x + tr() * 2, GZ + 22 + tr() * 6, .9 + tr() * .6);
+for (let x = -60; x <= 60; x += small ? 9 : 6) if (Math.abs(x) > 10) addTree(x + tr() * 2, GZ + 34 + tr() * 6, .9 + tr() * .6);
 const trunks = new THREE.InstancedMesh(new THREE.CylinderGeometry(.16, .26, 3, 7), new THREE.MeshStandardMaterial({color: '#4a3826', roughness: 1}), treePts.length);
 const crowns = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 1), new THREE.MeshStandardMaterial({roughness: .95, flatShading: true}), treePts.length * 2);
 const dm = new THREE.Object3D(), col = new THREE.Color();
@@ -1403,13 +1404,14 @@ const V = (x, y, z) => new THREE.Vector3(x, y, z);
 // one continuous move: the road → through the gate → up the drive → in at the
 // entrance → along the lobby → out the back doors → up over the ground
 const KEYS = [
-  [0,    V(0, 1.75, GZ + 13),     V(0, 3.9, GZ)],
-  [.07,  V(0, 1.75, GZ + 5),      V(0, 2.8, GZ - 8)],
-  [.13,  V(0, 1.9, GZ - 4),       V(0, 3, GZ - 22)],
-  [.22,  V(-5, 3.6, 25),          V(0, 4.2, 0)],
-  [.30,  V(-.6, 2.3, 10),         V(0, 3.2, 0)],
-  [.36,  V(0, 1.7, 3.2),          V(0, 1.7, -3)],
-  [.41,  V(0, 1.62, -2.4),        V(0, 1.6, -8.4)],
+  [0,    V(0, 2.2, GZ + 22),      V(0, 4.6, GZ)],         // the whole gate in view: arch, crown, name board, iron gates
+  [.06,  V(0, 2, GZ + 15),        V(0, 4.3, GZ)],
+  [.11,  V(0, 1.8, GZ + 6),       V(0, 3, GZ - 8)],
+  [.16,  V(0, 1.9, GZ - 4),       V(0, 3, GZ - 22)],
+  [.24,  V(-5, 3.6, 25),          V(0, 4.2, 0)],
+  [.31,  V(-.6, 2.3, 10),         V(0, 3.2, 0)],
+  [.37,  V(0, 1.7, 3.2),          V(0, 1.7, -3)],
+[.42,  V(0, 1.62, -2.4),        V(0, 1.6, -8.4)],
   [.63,  V(0, 1.62, LZ + 2.6),    V(0, 1.6, LZ - 6)],
   [.71,  V(0, 2.1, LZ - 5),       V(0, 1.3, LZ - 22)],
   [.81,  V(8, 9, LZ - 18),        V(0, 0, FZ + 12)],
@@ -1441,7 +1443,7 @@ function resize(){
   camera.aspect = w / h; camera.fov = w / h < 1 ? 62 : 46; camera.updateProjectionMatrix();
   // on a tall phone screen, stand further back so the whole gate fits
   const hHalf = Math.atan(Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.aspect);
-  heroExtra = Math.max(0, (GWID * 2 + 1.6) / (2 * Math.tan(hHalf)) - 13);
+  heroExtra = Math.max(0, (GWID * 2 + 2.4) / (2 * Math.tan(hHalf)) - 22);
 }
 addEventListener('resize', resize); resize();
 
@@ -1465,7 +1467,7 @@ function frame(){
   mouse.sx += (mouse.x - mouse.sx) * .05; mouse.sy += (mouse.y - mouse.sy) * .05;
   const u = curveU(p);
   posCurve.getPoint(u, pos); lookCurve.getPoint(u, look);
-  pos.z += heroExtra * (1 - smooth(0, .12, p));
+  pos.z += heroExtra * (1 - smooth(0, .14, p));
   const inside = smooth(.38, .42, p) * (1 - smooth(.62, .68, p));
   pos.y += Math.sin(pos.z * 2.4) * .012 * inside;
   camera.position.set(pos.x + mouse.sx * .22, pos.y - mouse.sy * .08, pos.z);
@@ -1473,9 +1475,9 @@ function frame(){
   sky.position.copy(camera.position);
 
   // the iron gates swing in, the entrance doors open, the back doors open onto the ground
-  const ag = ease(smooth(.02, .1, p)) * 1.5;
+  const ag = ease(smooth(.065, .125, p)) * 1.5;
   gateLeaves.forEach(({pivot, side}) => pivot.rotation.y = -side * ag);
-  const af = ease(smooth(.31, .37, p)) * 1.6;
+  const af = ease(smooth(.32, .38, p)) * 1.6;
   frontLeaves.forEach(({pivot, side}) => pivot.rotation.y = -side * af);
   const ab = ease(smooth(.55, .64, p)) * 1.6;
   glassLeaves.forEach(({pivot, side}) => pivot.rotation.y = -side * ab);
@@ -1492,11 +1494,11 @@ function frame(){
   // words over the scene
   const op = (el, v, dy = 14) => { el.style.opacity = v.toFixed(3); el.style.transform = el === ov.cap ? (innerWidth > 760 ? `translateY(calc(-50% + ${(1 - v) * dy}px))` : `translateY(${(1 - v) * dy}px)`) : `translateY(${(1 - v) * dy}px)`; };
   // the opening photo: full screen, then it dissolves into the gate
-  const ph = 1 - smooth(.004, .045, p);
+  const ph = 1 - smooth(.003, .025, p);
   ov.photo.style.opacity = ph.toFixed(3); ov.photo.style.transform = `scale(${1 + (1 - ph) * .12})`; ov.photo.style.visibility = ph < .01 ? 'hidden' : 'visible';
-  op(ov.hero, 1 - smooth(.004, .03, p));
+  op(ov.hero, 1 - smooth(.003, .02, p));
   ov.cue.style.opacity = (1 - smooth(.002, .02, p)).toFixed(3);
-  op(ov.gate, smooth(.05, .09, p) * (1 - smooth(.26, .31, p)));
+  op(ov.gate, smooth(.025, .05, p) * (1 - smooth(.27, .32, p)));
   op(ov.lobby, smooth(.39, .42, p) * (1 - smooth(.45, .48, p)));
   op(ov.cap, smooth(.46, .48, p) * (1 - smooth(.6, .63, p)));
   op(ov.ground, smooth(.76, .82, p));
