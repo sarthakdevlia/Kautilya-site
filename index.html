@@ -1029,7 +1029,7 @@ const brickTex = canvasTex(512, 512, (g, w, h) => {
   g.fillStyle = '#7d4a33'; g.fillRect(0, 0, w, h);
   for (let y = -2; y < h / B + 2; y++) for (let x = -2; x < w / B + 2; x++) {
     const hor = (x + y) % 2 === 0, px = x * B, py = y * B;
-    g.fillStyle = `hsl(${14 + r() * 10},${42 + r() * 14}%,${44 + r() * 14}%)`;
+    g.fillStyle = `hsl(${8 + r() * 30},${48 + r() * 18}%,${46 + r() * 16}%)`;   // mixed red, orange and yellow, as laid at the gate
     if (hor) g.fillRect(px + 2, py + 2, B * 2 - 4, B - 4); else g.fillRect(px + 2, py + 2, B - 4, B * 2 - 4);
   }
   speckle(g, w, h, 6000, ['rgba(40,20,10,.18)', 'rgba(255,220,190,.12)'], r, 2);
@@ -1049,76 +1049,94 @@ const roadTex = canvasTex(1024, 128, (g, w, h) => {
 const road = new THREE.Mesh(new THREE.PlaneGeometry(240, 10), new THREE.MeshStandardMaterial({map: tiled(roadTex, 20, 1), roughness: .9}));
 road.rotation.x = -Math.PI / 2; road.position.set(0, .015, GZ + 11); road.receiveShadow = true; scene.add(road);
 
-// the gate: a cream arch with grey trims, a stepped cornice and the white wrought-iron crown
-const cream = new THREE.MeshStandardMaterial({color: '#e2d2ae', roughness: .8});
-const trim = new THREE.MeshStandardMaterial({color: '#77716a', roughness: .7});
-const GA = 3, GSPR = 4.3, GWID = 5.4, GHT = 8.2, GD = 1.3;   // arch radius, springing height, half width, height, depth
+// the gate, as it stands on Rawatbhata Road: a white body with beige edge stripes and a wide
+// arch outlined in dark grey; the top of the arch is closed by a white panel carrying the logo,
+// a red "Kautilya" and "Integrated Education"; above, a slab that juts out like a hat, then a
+// tall attic with a beige band, and the white wrought crown on top. Silver gates below.
+const cream = new THREE.MeshStandardMaterial({color: '#d3cdbd', roughness: .85});
+const trim = new THREE.MeshStandardMaterial({color: '#5c6066', roughness: .6});
+const beige = new THREE.MeshStandardMaterial({color: '#b39b70', roughness: .85});
+const GA = 3.3, GSPR = 5.1, GWID = 5.4, GHT = 8.7, GD = 1.4;   // arch radius, springing height, half width, body height, depth
+const TYMP = 6.35;                                               // the white panel closes the arch above this height
 (() => {
   const s = new THREE.Shape();
   s.moveTo(-GWID, 0); s.lineTo(-GA, 0); s.lineTo(-GA, GSPR); s.absarc(0, GSPR, GA, Math.PI, 0, true); s.lineTo(GA, 0); s.lineTo(GWID, 0);
   s.lineTo(GWID, GHT); s.lineTo(-GWID, GHT); s.closePath();
-  const geo = new THREE.ExtrudeGeometry(s, {depth: GD, bevelEnabled: false, curveSegments: 40});
-  const arch = new THREE.Mesh(geo, cream); arch.position.set(0, 0, GZ - GD / 2); arch.castShadow = arch.receiveShadow = true; scene.add(arch);
-  [GZ + GD / 2 + .02, GZ - GD / 2 - .02].forEach(z => {
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(GA + .16, .13, 10, 48, Math.PI), trim); ring.position.set(0, GSPR, z); scene.add(ring);
-    [-1, 1].forEach(sd => { const j = new THREE.Mesh(new THREE.BoxGeometry(.26, GSPR, .26), trim); j.position.set(sd * (GA + .16), GSPR / 2, z); scene.add(j); });
-    [-1, 1].forEach(sd => { const pl = new THREE.Mesh(new THREE.BoxGeometry(.7, GHT - .4, .14), new THREE.MeshStandardMaterial({color: '#c9b78f', roughness: .8})); pl.position.set(sd * (GWID - .45), (GHT - .4) / 2, z); scene.add(pl); });
+  const body = new THREE.Mesh(new THREE.ExtrudeGeometry(s, {depth: GD, bevelEnabled: false, curveSegments: 48}), cream);
+  body.position.set(0, 0, GZ - GD / 2); body.castShadow = body.receiveShadow = true; scene.add(body);
+  [GZ + GD / 2 + .015, GZ - GD / 2 - .015].forEach(z => {
+    // the dark grey band round the arch and down both jambs
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(GA + .2, .2, 10, 64, Math.PI), trim); ring.position.set(0, GSPR, z); ring.scale.z = .35; scene.add(ring);
+    [-1, 1].forEach(sd => { const j = new THREE.Mesh(new THREE.BoxGeometry(.4, GSPR, .14), trim); j.position.set(sd * (GA + .2), GSPR / 2, z); scene.add(j); });
+    // beige stripes up the outer edges
+    [-1, 1].forEach(sd => { const st = new THREE.Mesh(new THREE.BoxGeometry(.42, GHT, .06), beige); st.position.set(sd * (GWID - .21), GHT / 2, z); scene.add(st); });
   });
-  const c1 = new THREE.Mesh(new THREE.BoxGeometry(GWID * 2 + .7, .32, GD + .4), trim); c1.position.set(0, GHT + .16, GZ); c1.castShadow = true; scene.add(c1);
-  const c2 = new THREE.Mesh(new THREE.BoxGeometry(GWID * 2 + 1.2, .45, GD + .7), cream); c2.position.set(0, GHT + .55, GZ); c2.castShadow = true; scene.add(c2);
-  const c3 = new THREE.Mesh(new THREE.BoxGeometry(GWID * 2 - 1, .28, GD), cream); c3.position.set(0, GHT + .92, GZ); scene.add(c3);
-  // the crown: white scrolls on top, drawn once and stood on the cornice
+  // the white panel in the top of the arch, with the school's name
+  const a0 = Math.asin((TYMP - GSPR) / GA), half = GA * Math.cos(a0), top = GSPR + GA;
+  const ts = new THREE.Shape(); ts.moveTo(half, TYMP); ts.absarc(0, GSPR, GA, a0, Math.PI - a0, false); ts.lineTo(-half, TYMP); ts.closePath();
+  const tg = new THREE.ShapeGeometry(ts, 48);
+  const tympTex = canvasTex(1320, 450, (g, w, h) => {
+    g.fillStyle = '#f7f6f2'; g.fillRect(0, 0, w, h);
+    const lh = h * .36;
+    if (logoImg) { const lw = lh * logoImg.width / (logoImg.height * .6); g.drawImage(logoImg, 0, 0, logoImg.width, logoImg.height * .6, w / 2 - lw / 2, h * .06, lw, lh); }   // the round mark only, not the lettering under it
+    g.textAlign = 'center'; g.textBaseline = 'alphabetic';
+    g.fillStyle = '#d71f26'; g.font = '800 178px "Baloo 2", Manrope, sans-serif'; g.fillText('Kautilya', w / 2, h * .84);
+    g.fillStyle = '#2b2f38'; g.font = '700 38px Manrope, sans-serif'; g.letterSpacing = '3px'; g.fillText('Integrated Education', w / 2, h * .965);
+  });
+  tympTex.repeat.set(1 / (2 * half), 1 / (top - TYMP)); tympTex.offset.set(.5, -TYMP / (top - TYMP));
+  const tymp = new THREE.Mesh(tg, new THREE.MeshStandardMaterial({map: tympTex, roughness: .8, color: '#c4c4c4'}));
+  tymp.position.z = GZ + .25; scene.add(tymp);
+  const tympBack = new THREE.Mesh(tg, cream); tympBack.rotation.y = Math.PI; tympBack.position.z = GZ - .25; scene.add(tympBack);
+  const lintel = new THREE.Mesh(new THREE.BoxGeometry(2 * half, .16, .6), trim); lintel.position.set(0, TYMP - .08, GZ); scene.add(lintel);
+  // the hat: a wide slab jutting out on every side
+  const hat = new THREE.Mesh(new THREE.BoxGeometry(GWID * 2 + 2.6, .5, GD + 1.6), cream); hat.position.set(0, GHT + .25, GZ); hat.castShadow = true; scene.add(hat);
+  const hatEdge = new THREE.Mesh(new THREE.BoxGeometry(GWID * 2 + 2.62, .12, GD + 1.62), beige); hatEdge.position.set(0, GHT + .06, GZ); scene.add(hatEdge);
+  // the attic above it, with its beige band, and the crown on top
+  const AT = 1.8;
+  const attic = new THREE.Mesh(new THREE.BoxGeometry(GWID * 2 - .3, AT, GD), cream); attic.position.set(0, GHT + .5 + AT / 2, GZ); attic.castShadow = true; scene.add(attic);
+  const band = new THREE.Mesh(new THREE.BoxGeometry(GWID * 2 - .2, .6, GD + .1), beige); band.position.set(0, GHT + .5 + AT * .52, GZ); scene.add(band);
+  const cap = new THREE.Mesh(new THREE.BoxGeometry(GWID * 2, .16, GD + .2), cream); cap.position.set(0, GHT + .5 + AT + .08, GZ); scene.add(cap);
   const crown = canvasTex(1024, 360, (g, w, h) => {
-    g.clearRect(0, 0, w, h); g.strokeStyle = '#ffffff'; g.fillStyle = '#ffffff'; g.lineCap = 'round'; g.lineWidth = 14;
+    g.clearRect(0, 0, w, h); g.strokeStyle = '#ffffff'; g.fillStyle = '#ffffff'; g.lineCap = 'round'; g.lineWidth = 15;
     const scroll = (x, y, r, dir) => { g.beginPath(); for (let a = 0; a < Math.PI * 3.2; a += .08) { const rr = r * (1 - a / (Math.PI * 3.6)); g.lineTo(x + dir * Math.cos(a) * rr, y - Math.sin(a) * rr); } g.stroke(); };
-    g.beginPath(); g.moveTo(40, h - 18); g.lineTo(w - 40, h - 18); g.stroke();
+    g.beginPath(); g.moveTo(30, h - 16); g.lineTo(w - 30, h - 16); g.stroke();
     [-1, 1].forEach(d => {
-      const cx = w / 2 + d * 250; scroll(cx, h - 120, 90, d); scroll(w / 2 + d * 420, h - 70, 52, -d);
-      g.beginPath(); g.moveTo(w / 2 + d * 60, h - 18); g.bezierCurveTo(w / 2 + d * 120, h - 200, w / 2 + d * 260, h - 230, cx + d * 80, h - 130); g.stroke();
+      const cx = w / 2 + d * 230; scroll(cx, h - 110, 92, d); scroll(w / 2 + d * 410, h - 62, 50, -d);
+      g.beginPath(); g.moveTo(w / 2 + d * 60, h - 16); g.bezierCurveTo(w / 2 + d * 110, h - 190, w / 2 + d * 240, h - 225, cx + d * 82, h - 122); g.stroke();
+      g.beginPath(); g.moveTo(w / 2 + d * 330, h - 16); g.quadraticCurveTo(w / 2 + d * 330, h - 120, w / 2 + d * 400, h - 120); g.stroke();
     });
-    g.beginPath(); g.moveTo(w / 2, h - 18); g.lineTo(w / 2, 80); g.stroke();
-    g.beginPath(); g.moveTo(w / 2, 30); g.bezierCurveTo(w / 2 + 70, 80, w / 2 + 40, 150, w / 2, 170); g.bezierCurveTo(w / 2 - 40, 150, w / 2 - 70, 80, w / 2, 30); g.fill();
-    [-1, 1].forEach(d => { g.beginPath(); g.arc(w / 2 + d * 120, 150, 26, 0, Math.PI * 2); g.stroke(); g.beginPath(); g.arc(w / 2 + d * 340, 200, 20, 0, Math.PI * 2); g.stroke(); });
+    g.beginPath(); g.moveTo(w / 2, h - 16); g.lineTo(w / 2, 90); g.stroke();
+    g.beginPath(); g.moveTo(w / 2, 26); g.bezierCurveTo(w / 2 + 64, 78, w / 2 + 40, 150, w / 2, 168); g.bezierCurveTo(w / 2 - 40, 150, w / 2 - 64, 78, w / 2, 26); g.fill();
+    [-1, 1].forEach(d => { g.beginPath(); g.arc(w / 2 + d * 118, 150, 26, 0, Math.PI * 2); g.stroke(); });
   });
-  const cr = new THREE.Mesh(new THREE.PlaneGeometry(5.2, 5.2 * 360 / 1024), new THREE.MeshStandardMaterial({map: crown, alphaTest: .4, side: THREE.DoubleSide, roughness: .5, emissive: '#ffffff', emissiveIntensity: .12, emissiveMap: crown}));
-  cr.position.set(0, GHT + 1.06 + .91, GZ); scene.add(cr);
-  // the name board hung in the arch: logo, red "Kautilya", "Integrated Education"
-  const board = canvasTex(1100, 330, (g, w, h) => {
-    g.fillStyle = '#ffffff'; g.fillRect(0, 0, w, h);
-    g.strokeStyle = '#1f4fa8'; g.lineWidth = 16; g.strokeRect(8, 8, w - 16, h - 16);
-    if (logoImg) { const s = 190 / Math.max(logoImg.width, logoImg.height); g.drawImage(logoImg, 70, (h - logoImg.height * s) / 2, logoImg.width * s, logoImg.height * s); }
-    g.fillStyle = '#d71f26'; g.font = '700 150px "Baloo 2", Manrope, sans-serif'; g.textBaseline = 'middle'; g.fillText('Kautilya', 300, 140);
-    g.fillStyle = '#1d2333'; g.font = '700 40px Manrope, sans-serif'; g.letterSpacing = '6px'; g.fillText('INTEGRATED EDUCATION', 308, 252);
-  });
-  const nb = new THREE.Mesh(new RoundedBoxGeometry(3.4, 1.02, .1, 2, .03), [cream, cream, cream, cream, new THREE.MeshStandardMaterial({map: board, roughness: .8, color: '#9c9c9c'}), cream]);
-  nb.position.set(0, GSPR + 1.2, GZ + GD / 2 + .1); scene.add(nb);
+  const cr = new THREE.Mesh(new THREE.PlaneGeometry(6, 6 * 360 / 1024), new THREE.MeshStandardMaterial({map: crown, alphaTest: .4, side: THREE.DoubleSide, roughness: .5, color: '#f2f2f2'}));
+  cr.position.set(0, GHT + .5 + AT + .16 + 6 * 360 / 1024 / 2, GZ); scene.add(cr);
 })();
 
-// the iron gates: black bars and rings, swinging in as you arrive
-const gateTex = canvasTex(512, 480, (g, w, h) => {
+// the gates: silver bars and big rings, swinging in as you arrive
+const gateTex = canvasTex(512, 400, (g, w, h) => {
   g.clearRect(0, 0, w, h); g.strokeStyle = '#fff'; g.fillStyle = '#fff';
   g.lineWidth = 16; g.strokeRect(8, 8, w - 16, h - 16);
-  g.lineWidth = 7; for (let x = 40; x < w - 20; x += 36) { g.beginPath(); g.moveTo(x, 8); g.lineTo(x, h - 8); g.stroke(); }
-  g.lineWidth = 12; [h * .3, h * .7].forEach(y => { g.beginPath(); g.moveTo(8, y); g.lineTo(w - 8, y); g.stroke(); });
-  g.lineWidth = 8; [[w * .3, h * .5], [w * .7, h * .5]].forEach(([x, y]) => { g.beginPath(); g.arc(x, y, h * .17, 0, Math.PI * 2); g.stroke(); g.beginPath(); g.arc(x, y, h * .08, 0, Math.PI * 2); g.stroke(); });
-  for (let x = 40; x < w - 20; x += 36) { g.beginPath(); g.moveTo(x - 9, 14); g.lineTo(x, 0); g.lineTo(x + 9, 14); g.fill(); }
+  g.lineWidth = 6; for (let x = 36; x < w - 20; x += 30) { g.beginPath(); g.moveTo(x, 8); g.lineTo(x, h - 8); g.stroke(); }
+  g.lineWidth = 11; [h * .22, h * .82].forEach(y => { g.beginPath(); g.moveTo(8, y); g.lineTo(w - 8, y); g.stroke(); });
+  g.lineWidth = 9; [[w * .3, h * .52], [w * .7, h * .52]].forEach(([x, y]) => { g.beginPath(); g.arc(x, y, h * .24, 0, Math.PI * 2); g.stroke(); g.beginPath(); g.arc(x, y, h * .12, 0, Math.PI * 2); g.stroke(); });
 });
-const ironMat = new THREE.MeshStandardMaterial({color: '#1c1d20', metalness: .6, roughness: .45, map: gateTex, alphaTest: .5, side: THREE.DoubleSide});
+const ironMat = new THREE.MeshStandardMaterial({color: '#cfd2d6', metalness: .7, roughness: .35, map: gateTex, alphaTest: .5, side: THREE.DoubleSide});
 const gateLeaves = [];
 [-1, 1].forEach(side => {
   const pivot = new THREE.Group(); pivot.position.set(side * GA, 0, GZ);
-  const leaf = new THREE.Mesh(new THREE.PlaneGeometry(GA, 2.8), ironMat); leaf.position.set(-side * GA / 2, 1.5, 0); leaf.castShadow = true; pivot.add(leaf);
+  const leaf = new THREE.Mesh(new THREE.PlaneGeometry(GA, 2.4), ironMat); leaf.position.set(-side * GA / 2, 1.3, 0); leaf.castShadow = true; pivot.add(leaf);
   scene.add(pivot); gateLeaves.push({pivot, side});
 });
 
 // boundary wall either side of the gate
 (() => {
-  const wallM = new THREE.MeshStandardMaterial({color: '#e2d7bf', roughness: .85});
+  const wallM = new THREE.MeshStandardMaterial({color: '#d4d0c6', roughness: .85});
   [-1, 1].forEach(sd => {
     const len = 70 - GWID, cx = sd * (GWID + len / 2);
-    const w = new THREE.Mesh(new THREE.BoxGeometry(len, 2.3, .35), wallM); w.position.set(cx, 1.15, GZ); w.castShadow = w.receiveShadow = true; scene.add(w);
-    const cap = new THREE.Mesh(new THREE.BoxGeometry(len, .12, .5), trim); cap.position.set(cx, 2.36, GZ); scene.add(cap);
-    for (let x = GWID + 5; x < 70; x += 6) { const p = new THREE.Mesh(new THREE.BoxGeometry(.6, 2.7, .6), wallM); p.position.set(sd * x, 1.35, GZ); p.castShadow = true; scene.add(p); }
+    const w = new THREE.Mesh(new THREE.BoxGeometry(len, 1.5, .35), wallM); w.position.set(cx, .75, GZ); w.castShadow = w.receiveShadow = true; scene.add(w);
+    const cap = new THREE.Mesh(new THREE.BoxGeometry(len, .1, .45), trim); cap.position.set(cx, 1.55, GZ); scene.add(cap);
+    for (let x = GWID + 5; x < 70; x += 6) { const p = new THREE.Mesh(new THREE.BoxGeometry(.5, 1.8, .5), wallM); p.position.set(sd * x, .9, GZ); p.castShadow = true; scene.add(p); }
     // side walls run back to the building line
     const sw = new THREE.Mesh(new THREE.BoxGeometry(.35, 2.3, GZ + 30), wallM); sw.position.set(sd * 70, 1.15, GZ / 2 - 15); scene.add(sw);
   });
@@ -1128,7 +1146,7 @@ const gateLeaves = [];
 (() => {
   const g = new THREE.Group(); g.position.set(-10, 0, GZ - 3.4);
   const body = new THREE.Mesh(new THREE.BoxGeometry(3.2, 2.7, 3), new THREE.MeshStandardMaterial({color: '#efe8d8', roughness: .8})); body.position.y = 1.35; body.castShadow = true; g.add(body);
-  const roofC = new THREE.Mesh(new THREE.BoxGeometry(3.7, .25, 3.5), new THREE.MeshStandardMaterial({color: '#a5523b', roughness: .7})); roofC.position.y = 2.82; g.add(roofC);
+  const roofC = new THREE.Mesh(new THREE.BoxGeometry(3.7, .25, 3.5), new THREE.MeshStandardMaterial({color: '#8c9097', roughness: .7})); roofC.position.y = 2.82; g.add(roofC);
   const door = new THREE.Mesh(new THREE.PlaneGeometry(.9, 1.9), new THREE.MeshStandardMaterial({color: '#5a3b26'})); door.position.set(.9, .95, 1.51); g.add(door);
   const win = new THREE.Mesh(new THREE.PlaneGeometry(1, .8), new THREE.MeshStandardMaterial({color: '#2f6f85', roughness: .2, metalness: .3})); win.position.set(-.6, 1.6, 1.51); g.add(win);
   scene.add(g);
@@ -1404,8 +1422,8 @@ const V = (x, y, z) => new THREE.Vector3(x, y, z);
 // one continuous move: the road → through the gate → up the drive → in at the
 // entrance → along the lobby → out the back doors → up over the ground
 const KEYS = [
-  [0,    V(0, 2.2, GZ + 22),      V(0, 4.6, GZ)],         // the whole gate in view: arch, crown, name board, iron gates
-  [.06,  V(0, 2, GZ + 15),        V(0, 4.3, GZ)],
+  [0,    V(0, 2.2, GZ + 22),      V(0, 5.6, GZ)],         // the whole gate in view: arch, crown, name board, iron gates
+  [.06,  V(0, 2, GZ + 15),        V(0, 4.9, GZ)],
   [.11,  V(0, 1.8, GZ + 6),       V(0, 3, GZ - 8)],
   [.16,  V(0, 1.9, GZ - 4),       V(0, 3, GZ - 22)],
   [.24,  V(-5, 3.6, 25),          V(0, 4.2, 0)],
@@ -1443,7 +1461,7 @@ function resize(){
   camera.aspect = w / h; camera.fov = w / h < 1 ? 62 : 46; camera.updateProjectionMatrix();
   // on a tall phone screen, stand further back so the whole gate fits
   const hHalf = Math.atan(Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.aspect);
-  heroExtra = Math.max(0, (GWID * 2 + 2.4) / (2 * Math.tan(hHalf)) - 22);
+  heroExtra = Math.max(0, (GWID * 2 + 3.4) / (2 * Math.tan(hHalf)) - 22);
 }
 addEventListener('resize', resize); resize();
 
