@@ -9,9 +9,9 @@ import base64, json, pathlib
 HERE = pathlib.Path(__file__).parent / 'photos'
 FILES = {
     'hero': 'slider1.jpg', 'logo': 'logo.jpg',
-    'classrooms': 'classrooms.jpg', 'computer': 'computer-lab.jpg', 'library': 'library.jpg',
-    'science': 'science-lab.jpg', 'indoor': 'indoor-games.jpg', 'annual': 'annual-day.jpg',
-    'cultural': 'cultural.jpg', 'cricket': 'cricket.jpg', 'results': 'results.webp',
+    'independence': 'independence-day.jpg', 'republic': 'republic-day.jpg', 'janmashtami': 'janmashtami.jpg', 'annual': 'annual-day.jpg',
+    'krishna': 'krishna.jpg', 'picnic': 'picnic.jpg', 'heritage': 'heritage-day.jpg', 'space': 'space-exhibition.jpg', 'fruits': 'fruits-day.jpg',
+    'house': 'house.jpg', 'fair': 'childrens-fair.jpg', 'tournament': 'cricket-tournament.jpg',
 }
 MIME = {'.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp'}
 
