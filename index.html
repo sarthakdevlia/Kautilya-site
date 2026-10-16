@@ -1,0 +1,1263 @@
+<!doctype html>
+<html lang="en" class="is-loading">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kautilya Senior Secondary School, Kota — CBSE School</title>
+<meta name="description" content="Kautilya Senior Secondary School, Rawat Bhata Road, NH-76 Bypass, Naya Gaon, Kota. CBSE affiliated (No. 1730610). Walk through the school and out onto the ground in 3D.">
+<meta name="theme-color" content="#0f1a2e">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Manrope:wght@300..800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lenis@1.3.26/dist/lenis.css">
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/"
+} }
+</script>
+<style>
+/* ------------------------------------------------------------------
+   Kautilya School — the campus in 3D (demo by SD Ventures).
+   One scroll: step through the school photo, walk the lobby gallery,
+   come out through the glass doors onto the ground.
+   Photos: drop files into photos/ with the names listed in PHOTOS
+   (script below); until then each frame shows a labelled card.
+------------------------------------------------------------------ */
+:root{
+  --navy:#0f1a2e; --navy-2:#15233d; --navy-3:#1c2d4c;
+  --ink:#f4eee3; --muted:#b8b0a2; --line:rgba(244,238,227,.14);
+  --gold:#f08a3e; --gold-2:#ffb27a; --blue:#2a6fd6; --cream:#f5efe4; --cream-ink:#1d2333;
+  --serif:"Cormorant Garamond", Georgia, serif; --sans:Manrope, system-ui, sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--navy);color:var(--ink);font-family:var(--sans);font-size:17px;line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{color:inherit}
+img{max-width:100%;display:block}
+
+/* loading curtain */
+.curtain{position:fixed;inset:0;z-index:60;background:var(--navy);display:grid;place-items:center;transition:opacity 1s .15s,visibility 0s 1.2s}
+.curtain__in{display:grid;justify-items:center;gap:14px;color:var(--gold)}
+.curtain__in span{font:600 13px/1 var(--sans);letter-spacing:.32em;text-transform:uppercase;color:var(--muted)}
+.curtain__bar{width:140px;height:1px;background:var(--line);overflow:hidden}
+.curtain__bar::after{content:"";display:block;height:100%;width:40%;background:var(--gold);animation:load 1.2s ease-in-out infinite}
+@keyframes load{from{transform:translateX(-100%)}to{transform:translateX(260%)}}
+html:not(.is-loading) .curtain{opacity:0;visibility:hidden}
+
+/* nav */
+.nav{position:fixed;top:0;left:0;right:0;z-index:30;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px clamp(16px,4vw,44px);transition:background .4s,backdrop-filter .4s}
+.nav.is-solid{background:rgba(15,26,46,.84);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:11px;text-decoration:none}
+.brand img{width:42px;height:42px;flex:none;border-radius:50%;background:#fff;object-fit:contain;padding:3px}
+.brand b{display:block;font:600 22px/1 var(--serif);letter-spacing:.04em}
+.brand small{display:block;font:600 9.5px/1.4 var(--sans);letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+.nav__links{display:flex;gap:26px;font:600 13px/1 var(--sans);letter-spacing:.06em}
+.nav__links a{text-decoration:none;opacity:.82}
+.nav__links a:hover{opacity:1;color:var(--gold-2)}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:12px 20px;border-radius:999px;background:var(--gold);color:#1a1408;font:700 13px/1 var(--sans);letter-spacing:.05em;text-decoration:none;border:0;cursor:pointer;transition:background .25s,transform .25s}
+.btn:hover{background:var(--gold-2);transform:translateY(-1px)}
+.btn--ghost{background:transparent;color:var(--ink);border:1px solid rgba(244,238,227,.35)}
+.btn--ghost:hover{background:rgba(244,238,227,.08)}
+@media (max-width:980px){.nav__links{display:none}}
+@media (max-width:520px){.nav .btn{padding:10px 14px;font-size:12px}.brand small{display:none}}
+
+/* the 3D tour */
+.tour{position:relative;height:640vh}
+.tour__sticky{position:sticky;top:0;height:100vh;height:100svh;overflow:hidden;background:#0b1220}
+#gl{display:block;width:100%;height:100%}
+.tour__sticky::after{content:"";position:absolute;inset:auto 0 0 0;height:42%;background:linear-gradient(to top,rgba(9,15,28,.78),rgba(9,15,28,0));pointer-events:none;opacity:var(--shade,1)}
+.ov{position:absolute;z-index:2;pointer-events:none;opacity:0;will-change:opacity,transform}
+.eyebrow{font:700 11.5px/1 var(--sans);letter-spacing:.28em;text-transform:uppercase;color:var(--gold-2)}
+.ov--hero{left:clamp(16px,5vw,64px);bottom:clamp(28px,8vh,84px);max-width:640px;opacity:1}
+.ov--hero h1{margin:12px 0 10px;font:600 clamp(36px,5vw,68px)/1 var(--serif);letter-spacing:-.01em;max-width:560px}
+.ov--hero h1 em{font-style:italic;font-weight:500;color:var(--gold-2)}
+.ov--hero p{margin:0;max-width:470px;color:#ddd5c7;font-size:clamp(15px,1.6vw,18px)}
+.cue{position:absolute;right:clamp(16px,5vw,64px);bottom:clamp(28px,8vh,84px);z-index:2;display:flex;align-items:center;gap:12px;font:700 11px/1 var(--sans);letter-spacing:.26em;text-transform:uppercase;color:#e6dccb;pointer-events:none}
+.cue i{display:block;width:1px;height:46px;background:linear-gradient(var(--gold),transparent);animation:cue 1.8s ease-in-out infinite;transform-origin:top}
+@keyframes cue{0%{transform:scaleY(0)}50%{transform:scaleY(1)}100%{transform:scaleY(0);transform-origin:bottom}}
+.chapter{left:clamp(16px,5vw,64px);bottom:clamp(28px,8vh,84px);max-width:520px}
+.chapter h2{margin:12px 0 8px;font:600 clamp(36px,5vw,64px)/1 var(--serif)}
+.chapter h2 em{font-style:italic;font-weight:500;color:var(--gold-2)}
+.chapter p{margin:0;color:#ddd5c7;max-width:430px}
+.caption{right:calc(clamp(14px,2.4vw,30px) + 110px);top:50%;transform:translateY(-50%);text-align:right;max-width:300px}
+.caption__in{padding:16px 20px;border-radius:14px;background:rgba(12,20,36,.62);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.caption .n{font:700 11px/1 var(--sans);letter-spacing:.26em;color:var(--gold-2)}
+.caption .t{margin-top:8px;font:italic 500 clamp(26px,3vw,38px)/1.05 var(--serif)}
+.caption .s{margin-top:6px;font-size:14px;color:#d6cdbd}
+.caption__in{transition:opacity .35s,transform .35s}
+.caption__in.swap{opacity:0;transform:translateY(8px)}
+.facts{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.facts span{padding:7px 12px;border-radius:999px;background:rgba(15,26,46,.55);border:1px solid rgba(244,238,227,.22);font:600 12.5px/1 var(--sans);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.rail{position:absolute;z-index:3;right:clamp(14px,2.4vw,30px);top:50%;transform:translateY(-50%);display:grid;gap:18px}
+.rail button{all:unset;cursor:pointer;display:flex;align-items:center;justify-content:flex-end;gap:10px;font:700 10px/1 var(--sans);letter-spacing:.22em;text-transform:uppercase;color:rgba(244,238,227,.55)}
+.rail button i{display:block;width:8px;height:8px;border-radius:50%;border:1px solid currentColor;transition:all .3s}
+.rail button.on{color:var(--gold-2)}
+.rail button.on i{background:var(--gold-2);transform:scale(1.25)}
+.rail button span{opacity:0;transition:opacity .3s}
+.rail:hover button span,.rail button.on span{opacity:1}
+@media (max-width:760px){
+  .caption{top:auto;bottom:clamp(150px,26vh,230px);right:16px;left:16px;transform:none;text-align:left;max-width:none}
+  .rail{display:none}
+  .cue{display:none}
+}
+
+/* page sections */
+.wrap{max-width:1180px;margin:0 auto;padding:0 clamp(16px,4vw,44px)}
+section.block{padding:clamp(80px,12vw,140px) 0}
+.head{max-width:720px;margin-bottom:clamp(36px,6vw,64px)}
+.head h2{margin:14px 0 14px;font:600 clamp(38px,5vw,62px)/1.02 var(--serif);letter-spacing:-.01em}
+.head h2 em{font-style:italic;font-weight:500;color:var(--gold-2)}
+.head p{margin:0;color:var(--muted);font-size:18px}
+[data-rise]{opacity:0;transform:translateY(28px);transition:opacity .9s cubic-bezier(.2,.7,.2,1),transform .9s cubic-bezier(.2,.7,.2,1)}
+[data-rise].in{opacity:1;transform:none}
+
+.about{display:grid;grid-template-columns:1.15fr .85fr;gap:clamp(32px,6vw,80px);align-items:start}
+.about__lead{font:500 clamp(24px,2.6vw,32px)/1.35 var(--serif);margin:0 0 22px}
+.about__body p{color:var(--muted);margin:0 0 16px}
+.card{background:var(--navy-2);border:1px solid var(--line);border-radius:18px;padding:28px}
+.kv{display:grid;gap:18px;margin:0}
+.kv div{display:grid;gap:4px;padding-bottom:16px;border-bottom:1px solid var(--line)}
+.kv div:last-child{border:0;padding:0}
+.kv dt{font:700 11px/1 var(--sans);letter-spacing:.2em;text-transform:uppercase;color:var(--gold)}
+.kv dd{margin:0;font-size:16.5px}
+@media (max-width:860px){.about{grid-template-columns:1fr}}
+
+.stages{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.stage{position:relative;background:var(--navy-2);border:1px solid var(--line);border-radius:18px;padding:26px 24px 28px;overflow:hidden;transition:transform .35s,border-color .35s}
+.stage:hover{transform:translateY(-4px);border-color:rgba(240,138,62,.5)}
+.stage .num{font:600 54px/1 var(--serif);color:rgba(240,138,62,.35)}
+.stage h3{margin:18px 0 6px;font:600 26px/1.1 var(--serif)}
+.stage .cls{font:700 11px/1 var(--sans);letter-spacing:.2em;text-transform:uppercase;color:var(--gold-2)}
+.stage p{margin:12px 0 0;color:var(--muted);font-size:15px}
+@media (max-width:960px){.stages{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:540px){.stages{grid-template-columns:1fr}}
+
+.light{background:var(--cream);color:var(--cream-ink)}
+.light .head p,.light .fac p{color:#5d5a55}
+.light .head h2 em{color:#c45f1c}
+.light .eyebrow{color:#c45f1c}
+.facs{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:rgba(29,35,51,.12);border:1px solid rgba(29,35,51,.12);border-radius:18px;overflow:hidden}
+.fac{background:var(--cream);padding:30px 28px 32px}
+.fac svg{width:34px;height:34px;color:#c45f1c}
+.fac h3{margin:16px 0 6px;font:600 25px/1.1 var(--serif)}
+.fac p{margin:0;font-size:15.5px}
+@media (max-width:900px){.facs{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:560px){.facs{grid-template-columns:1fr}}
+
+.admit{position:relative;overflow:hidden;background:radial-gradient(120% 140% at 85% 0%,#2b3f66 0%,var(--navy-2) 45%,var(--navy) 100%);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.admit__in{display:grid;grid-template-columns:1.2fr .8fr;gap:40px;align-items:center}
+.admit h2{margin:14px 0 14px;font:600 clamp(40px,5.4vw,70px)/1 var(--serif)}
+.admit h2 em{font-style:italic;font-weight:500;color:var(--gold-2)}
+.admit p{color:#d4cbbb;margin:0 0 26px;max-width:520px}
+.admit__btns{display:flex;flex-wrap:wrap;gap:12px}
+.steps{list-style:none;margin:0;padding:0;display:grid;gap:14px;counter-reset:s}
+.steps li{counter-increment:s;display:grid;grid-template-columns:44px 1fr;gap:14px;align-items:start;padding:16px 18px;background:rgba(15,26,46,.5);border:1px solid var(--line);border-radius:14px}
+.steps li::before{content:counter(s,decimal-leading-zero);font:600 24px/1 var(--serif);color:var(--gold)}
+.steps b{display:block;font-weight:700}
+.steps span{color:var(--muted);font-size:14.5px}
+@media (max-width:860px){.admit__in{grid-template-columns:1fr}}
+
+.visit{display:grid;grid-template-columns:.9fr 1.1fr;gap:clamp(28px,5vw,64px);align-items:stretch}
+.visit .kv dd a{text-decoration:none;border-bottom:1px solid rgba(240,138,62,.5)}
+.map{border-radius:18px;overflow:hidden;border:1px solid var(--line);min-height:380px;background:var(--navy-2)}
+.map iframe{display:block;width:100%;height:100%;min-height:380px;border:0;filter:grayscale(.3) contrast(1.05)}
+@media (max-width:860px){.visit{grid-template-columns:1fr}}
+
+footer{padding:36px 0 44px;border-top:1px solid var(--line);color:var(--muted);font-size:13.5px}
+footer .wrap{display:flex;flex-wrap:wrap;gap:12px 28px;justify-content:space-between}
+.demo-note{color:rgba(184,176,162,.7)}
+</style>
+</head>
+<body>
+
+<div class="curtain" aria-hidden="true"><div class="curtain__in">
+  <img src="photos/logo.jpg" alt="" width="64" height="64" style="width:64px;height:64px;border-radius:50%;background:#fff;object-fit:contain;padding:5px">
+  <span>Opening the campus</span><div class="curtain__bar"></div>
+</div></div>
+
+<header class="nav" id="nav">
+  <a class="brand" href="#top" data-link aria-label="Kautilya School, back to top">
+    <img src="photos/logo.jpg" alt="" width="42" height="42">
+    <span><b>Kautilya</b><small>Sr. Sec. School · Kota</small></span>
+  </a>
+  <nav class="nav__links" aria-label="Sections">
+    <a href="#top" data-link>Campus tour</a><a href="#about" data-link>About</a><a href="#academics" data-link>Academics</a><a href="#facilities" data-link>Facilities</a><a href="#visit" data-link>Contact</a>
+  </nav>
+  <a class="btn" href="#admissions" data-link>Admissions open</a>
+</header>
+
+<main>
+<section class="tour" id="top" aria-label="3D campus tour">
+  <div class="tour__sticky">
+    <canvas id="gl" aria-label="3D walk: through the school photograph, along the lobby gallery and out onto the cricket ground"></canvas>
+
+    <div class="ov ov--hero" id="ovHero">
+      <div class="eyebrow">CBSE · Sr. Sec. School · Kota</div>
+      <h1>Igniting minds, <em>creating leaders</em></h1>
+      <p>Nurturing the future. Step through the picture and walk the campus.</p>
+    </div>
+    <div class="cue" id="cue"><i></i>Scroll to enter</div>
+
+    <div class="ov chapter" id="ovLobby">
+      <div class="eyebrow">01 · The Lobby</div>
+      <h2>A day at <em>Kautilya</em></h2>
+      <p>Every frame on these walls is a moment from school life, from the classroom to Annual Day.</p>
+    </div>
+    <div class="ov caption" id="ovCap"><div class="caption__in" id="capIn"><div class="n" id="capN"></div><div class="t" id="capT"></div><div class="s" id="capS"></div></div></div>
+
+    <div class="ov chapter" id="ovGround">
+      <div class="eyebrow">02 · The Ground</div>
+      <h2>Home of the <em>Cricket Academy</em></h2>
+      <p>A turf pitch and practice nets for the Kautilya Cricket Academy, a basketball court, and open ground for Sports Day.</p>
+      <div class="facts"><span>Turf cricket pitch</span><span>Practice nets</span><span>Basketball court</span><span>Sports Day</span></div>
+    </div>
+
+    <div class="rail" id="rail" aria-label="Tour chapters">
+      <button data-p="0"><span>Entrance</span><i></i></button>
+      <button data-p=".3"><span>Lobby</span><i></i></button>
+      <button data-p="1"><span>Ground</span><i></i></button>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="about">
+  <div class="wrap about">
+    <div data-rise>
+      <div class="eyebrow">About the school</div>
+      <div class="head" style="margin-bottom:28px"><h2>Encourage. Educate. <em>Empower.</em></h2></div>
+      <p class="about__lead">We believe that quality education is the key to a quality life.</p>
+      <div class="about__body">
+        <p>Kautilya School in Kota gives children a supportive, nurturing place to grow, academically and personally: traditional values with modern teaching, digital classrooms, labs, music and dance, and sport.</p>
+        <p>The school is run by Sugra Shikshan Sansthan, Kota, and is affiliated to the Central Board of Secondary Education.</p>
+      </div>
+    </div>
+    <div class="card" data-rise style="padding:0;overflow:hidden">
+      <img src="photos/building-2.jpg" alt="The Kautilya School building" style="width:100%;aspect-ratio:16/7;object-fit:cover">
+      <dl class="kv" style="padding:26px 28px 28px">
+        <div><dt>Board</dt><dd>CBSE · Affiliation No. 1730610</dd></div>
+        <div><dt>Sections</dt><dd>Primary (I – V) · Secondary (VI – XII)</dd></div>
+        <div><dt>Chairman</dt><dd>Hon. Tabassum Pathan, Sugra Shikshan Sansthan</dd></div>
+        <div><dt>Principal</dt><dd>Mr. Sushil Maheshwari</dd></div>
+      </dl>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="academics" style="padding-top:0">
+  <div class="wrap">
+    <div class="head" data-rise>
+      <div class="eyebrow">Academics</div>
+      <h2>Classroom, stage <em>and field</em></h2>
+      <p>Holistic learning that combines the classroom with activities, to raise strong all-rounders.</p>
+    </div>
+    <div class="stages">
+      <article class="stage" data-rise><div class="num">01</div><div class="cls">Classes I – V</div><h3>Primary</h3><p>Strong basics in reading, maths and curiosity about the world.</p></article>
+      <article class="stage" data-rise><div class="num">02</div><div class="cls">Classes VI – XII</div><h3>Secondary</h3><p>Labs, projects and steady preparation for the CBSE board exams.</p></article>
+      <article class="stage" data-rise><div class="num">03</div><div class="cls">Every class</div><h3>Co-curricular</h3><p>Clubs, music, dance, Annual Day, fairs and educational trips.</p></article>
+      <article class="stage" data-rise><div class="num">04</div><div class="cls">On campus</div><h3>Cricket Academy</h3><p>Coaching on the school's own turf pitch and nets.</p></article>
+    </div>
+  </div>
+</section>
+
+<section class="block light" id="facilities">
+  <div class="wrap">
+    <div class="head" data-rise>
+      <div class="eyebrow">Facilities</div>
+      <h2>Built for <em>learning and play</em></h2>
+      <p>What children use every day, from the classroom to the ground.</p>
+    </div>
+    <div class="facs" data-rise>
+      <div class="fac"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="3" y="4" width="18" height="12" rx="1.5"/><path d="M8 20h8M12 16v4"/></svg><h3>Digital classrooms</h3><p>Smart boards in bright, airy rooms.</p></div>
+      <div class="fac"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="3" y="4" width="18" height="12" rx="1.5"/><path d="m9 8-2 2 2 2M15 8l2 2-2 2"/><path d="M8 20h8"/></svg><h3>Computer labs</h3><p>A computer at every desk.</p></div>
+      <div class="fac"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 1.8 3h10.4A2 2 0 0 0 19 18l-5-9V3"/><path d="M7.5 14h9"/></svg><h3>Science lab</h3><p>Experiments done hands-on, not just read from the book.</p></div>
+      <div class="fac"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H11v16H5.5A1.5 1.5 0 0 1 4 18.5v-13ZM20 5.5A1.5 1.5 0 0 0 18.5 4H13v16h5.5a1.5 1.5 0 0 0 1.5-1.5v-13Z"/></svg><h3>Library</h3><p>Open shelves and reading tables.</p></div>
+      <div class="fac"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg><h3>Music &amp; dance</h3><p>Music rooms and dance studios.</p></div>
+      <div class="fac"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5v17M3.5 12h17M6 6c3 2.5 3 9.5 0 12M18 6c-3 2.5-3 9.5 0 12"/></svg><h3>Indoor &amp; outdoor sports</h3><p>Badminton, table tennis, basketball and cricket.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="block admit" id="admissions">
+  <div class="wrap admit__in">
+    <div data-rise>
+      <div class="eyebrow">Admissions</div>
+      <h2>Come and <em>see us</em></h2>
+      <p>Visit the campus, meet the teachers and walk the ground yourself. The office will help you with the brochure, age requirements, documents and fees.</p>
+      <div class="admit__btns">
+        <a class="btn" href="https://wa.me/919352558244" target="_blank" rel="noopener">Enquire on WhatsApp</a>
+        <a class="btn btn--ghost" href="tel:+917742288786">Call 77422-88786</a>
+      </div>
+    </div>
+    <ol class="steps" data-rise>
+      <li><div><b>Enquire</b><span>Message or call the school office.</span></div></li>
+      <li><div><b>Visit the campus</b><span>Meet the principal and see the classrooms.</span></div></li>
+      <li><div><b>Submit the form</b><span>With the documents on the school's checklist.</span></div></li>
+      <li><div><b>Welcome to Kautilya</b><span>Fees, uniform and books, sorted with the office.</span></div></li>
+    </ol>
+  </div>
+</section>
+
+<section class="block" id="news" style="padding-bottom:0">
+  <div class="wrap">
+    <div class="head" data-rise><div class="eyebrow">Happening at Kautilya</div><h2>Recent <em>events</em></h2></div>
+    <div class="stages">
+      <a class="stage" data-rise href="https://kautilyaschool.com/" target="_blank" rel="noopener" style="text-decoration:none"><div class="cls">Annual Day</div><h3>“Passion 2025”</h3><p>The whole school on stage for the annual celebration.</p></a>
+      <a class="stage" data-rise href="https://kautilyaschool.com/" target="_blank" rel="noopener" style="text-decoration:none"><div class="cls">School trip</div><h3>Space Exhibition, RTU</h3><p>A visit to the space exhibition at RTU Kota.</p></a>
+      <a class="stage" data-rise href="https://kautilyaschool.com/" target="_blank" rel="noopener" style="text-decoration:none"><div class="cls">Picnic</div><h3>Chambal River Front</h3><p>A day out along Kota's river front.</p></a>
+      <a class="stage" data-rise href="https://kautilyaschool.com/kautilya-cricket-academy/" target="_blank" rel="noopener" style="text-decoration:none"><div class="cls">Sport</div><h3>Cricket Academy 2026</h3><p>News from the Kautilya Cricket Academy.</p></a>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="visit">
+  <div class="wrap visit">
+    <div data-rise>
+      <div class="head" style="margin-bottom:28px"><div class="eyebrow">Visit</div><h2>Find <em>the campus</em></h2></div>
+      <div class="card">
+        <dl class="kv">
+          <div><dt>Address</dt><dd>NH-27, By Rawatbhata Road, Nayagaon,<br>Kota (Raj.) 324010</dd></div>
+          <div><dt>Call</dt><dd><a href="tel:+917442470787">0744-2470787</a> · <a href="tel:+917742288786">77422-88786</a> · <a href="tel:+919352558244">93525-58244</a></dd></div>
+          <div><dt>Email</dt><dd><a href="mailto:kautilyaschool786@rediffmail.com">kautilyaschool786@rediffmail.com</a></dd></div>
+          <div><dt>Office hours</dt><dd>8.00 AM – 1.00 PM (Accounts)</dd></div>
+        </dl>
+      </div>
+    </div>
+    <div class="map" data-rise>
+      <iframe title="Map: Kautilya Sr. Sec. School, Kota" loading="lazy" referrerpolicy="no-referrer-when-downgrade" src="https://www.google.com/maps?q=Kautilya+Sr.+Sec.+School,+Rawatbhata+Road,+Nayagaon,+Kota&output=embed"></iframe>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer><div class="wrap">
+  <span>© Kautilya Sr. Sec. School, Kota · Sugra Shikshan Sansthan · CBSE Affiliation No. 1730610</span>
+  <span class="demo-note">Website demo by SD Ventures</span>
+</div></footer>
+
+<script src="https://cdn.jsdelivr.net/npm/lenis@1.3.26/dist/lenis.min.js"></script>
+<script>/* opened from disk, WebGL cannot read image files, so photos come packed as text (photos/photos.js); on a server the plain files are used */
+if (location.protocol === 'file:') document.write('<script src="photos/photos.js"><\/script>');</script>
+<script>/* if the 3D can't start, the loading screen says why instead of waiting forever */
+(function(){ function show(m){ var s = document.querySelector('.curtain__in span'); if (s && document.documentElement.classList.contains('is-loading')) { s.textContent = 'Could not start the 3D view: ' + m; s.style.textTransform = 'none'; s.style.letterSpacing = '0'; s.style.maxWidth = '80vw'; s.style.textAlign = 'center'; } }
+  addEventListener('error', function(e){ show(e.message || (e.target && e.target.src) || 'error'); }, true);
+  addEventListener('unhandledrejection', function(e){ show(String(e.reason && e.reason.message || e.reason)); });
+  var c = document.createElement('canvas'); if (!(c.getContext('webgl2') || c.getContext('webgl'))) setTimeout(function(){ show('this browser has WebGL turned off'); });
+})();</script>
+<script type="module">
+import * as THREE from 'three';
+import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
+import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
+import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
+import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
+import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
+import {ShaderPass} from 'three/addons/postprocessing/ShaderPass.js';
+import {SMAAPass} from 'three/addons/postprocessing/SMAAPass.js';
+import {Reflector} from 'three/addons/objects/Reflector.js';
+import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
+
+const small = innerWidth < 900 || matchMedia('(pointer: coarse)').matches;
+const fine = matchMedia('(hover: hover) and (pointer: fine)').matches;
+
+/* ---- photos: put files in photos/ with these names (any aspect works) */
+const PHOTOS = {
+  hero: 'slider1.jpg',      // the big picture you step through: the opening banner of kautilyaschool.com
+  classrooms: 'classrooms.jpg', computer: 'computer-lab.jpg', library: 'library.jpg', science: 'science-lab.jpg',
+  indoor: 'indoor-games.jpg', annual: 'annual-day.jpg', cultural: 'cultural.jpg', cricket: 'cricket.jpg', results: 'results.webp',
+};
+
+/* ---- smooth scrolling */
+const lenis = new Lenis({lerp: .085});
+(function raf(t){ lenis.raf(t); requestAnimationFrame(raf); })(0);
+document.querySelectorAll('[data-link]').forEach(a => a.addEventListener('click', e => {
+  e.preventDefault(); const id = a.getAttribute('href'); lenis.scrollTo(id === '#top' ? 0 : id, {duration: 1.6});
+}));
+
+// canvas lettering needs the typefaces first
+await Promise.race([
+  Promise.all(['italic 500 60px "Cormorant Garamond"', '600 60px "Cormorant Garamond"', '700 60px "Cormorant Garamond"', '600 24px Manrope', '400 24px Manrope', '700 24px Manrope', '700 60px "Baloo 2"'].map(f => document.fonts.load(f))),
+  new Promise(r => setTimeout(r, 2500)),
+]).catch(() => {});
+
+/* =================================================================
+   1. Renderer and the finishing chain (as on the WoodStar site):
+      HDR render → bloom → tone mapping → SMAA → vignette + grain.
+================================================================= */
+const canvas = document.getElementById('gl');
+const renderer = new THREE.WebGLRenderer({canvas, antialias: false, powerPreference: 'high-performance'});
+const PR = Math.min(devicePixelRatio, small ? 1.25 : 1.5);
+renderer.setPixelRatio(PR);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.0;
+renderer.shadowMap.enabled = !small;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+const ANISO = renderer.capabilities.getMaxAnisotropy();
+
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2('#eeb184', .0032);
+scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), .04).texture;
+scene.environmentIntensity = .3;
+const camera = new THREE.PerspectiveCamera(46, 1, .1, 1500);
+
+const GRADE = {
+  uniforms: {tDiffuse: {value: null}, uTime: {value: 0}},
+  vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.); }',
+  fragmentShader: `uniform sampler2D tDiffuse; uniform float uTime; varying vec2 vUv;
+    float rand(vec2 c){ return fract(sin(dot(c, vec2(12.9898, 78.233))) * 43758.5453); }
+    void main(){
+      vec4 c = texture2D(tDiffuse, vUv);
+      float v = smoothstep(.95, .25, length((vUv - .5) * vec2(1.15, 1.)));
+      c.rgb *= mix(.6, 1., v);
+      c.rgb = mix(c.rgb, c.rgb * vec3(1.03, 1., .95), .6);
+      c.rgb += (rand(vUv * 1400. + fract(uTime) * 91.) - .5) * .024;
+      gl_FragColor = c;
+    }`,
+};
+const composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(1, 1, {type: THREE.HalfFloatType}));
+composer.addPass(new RenderPass(scene, camera));
+const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), small ? .32 : .42, .7, .93);
+composer.addPass(bloom);
+composer.addPass(new OutputPass());
+composer.addPass(new SMAAPass());
+const grade = new ShaderPass(GRADE);
+composer.addPass(grade);
+
+/* =================================================================
+   2. Helpers: seeded randomness and canvas-drawn textures
+================================================================= */
+function rng(seed){ let s = seed % 2147483647; if (s <= 0) s += 2147483646; return () => (s = s * 16807 % 2147483647) / 2147483647; }
+function canvasTex(w, h, draw, srgb = true){
+  // phones (iPhones above all) give a page far less graphics memory: big drawn textures are made at half size there
+  const k = small && w * h > 400000 ? .5 : 1;
+  const c = document.createElement('canvas'); c.width = Math.round(w * k); c.height = Math.round(h * k);
+  const g = c.getContext('2d'); g.scale(k, k);
+  draw(g, w, h);
+  const t = new THREE.CanvasTexture(c);
+  if (srgb) t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = ANISO;
+  return t;
+}
+function speckle(g, w, h, n, cols, rnd, sz = 2){
+  for (let i = 0; i < n; i++) { g.fillStyle = cols[(rnd() * cols.length) | 0]; const s = sz * (.5 + rnd()); g.fillRect(rnd() * w, rnd() * h, s, s); }
+}
+const loader = new THREE.TextureLoader();
+function loadPhoto(key, cb, fail = () => {}){
+  const packed = (window.K_IMG || {})[key];
+  const url = packed || (location.protocol === 'file:' ? null : `photos/${PHOTOS[key]}`);
+  if (!url) return fail();
+  loader.load(url, t => { t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = ANISO; cb(t, t.image.width / t.image.height); }, undefined, fail);
+}
+const tiled = (t, rx, ry) => { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rx, ry); return t; };
+const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+const ease = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+/* =================================================================
+   3. World layout. The school front is at z = 0; the lobby runs to
+      z = -LEN; the ground lies beyond, centred on FZ.
+================================================================= */
+const LEN = 30, CW = 5, CH = 3.6, DH = 3.2, DW = 8;          // DW: the picture-doors, wider than the lobby so the whole banner shows
+const LZ = -LEN, FZ = LZ - 62;
+const BW = 40, BH = 11;                                   // building front: width, height
+
+/* ---- sky dome: evening, sun low over the far side of the ground */
+const SUN_DIR = new THREE.Vector3(-.72, .24, -.65).normalize();
+const sky = new THREE.Mesh(new THREE.SphereGeometry(1000, 48, 24), new THREE.ShaderMaterial({
+  side: THREE.BackSide, depthWrite: false, fog: false,
+  uniforms: {uSun: {value: SUN_DIR}},
+  vertexShader: 'varying vec3 vDir; void main(){ vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.); }',
+  fragmentShader: `uniform vec3 uSun; varying vec3 vDir;
+    void main(){
+      float h = vDir.y;
+      vec3 hor = vec3(1., .72, .5), mid = vec3(.62, .62, .74), zen = vec3(.2, .3, .54);
+      vec3 c = mix(hor, mid, smoothstep(0., .2, h));
+      c = mix(c, zen, smoothstep(.2, .75, h));
+      if (h < 0.) c = mix(hor * .92, vec3(.55, .44, .36), smoothstep(0., -.25, h));
+      c = pow(c, vec3(2.2));
+      float s = max(dot(vDir, uSun), 0.);
+      c += vec3(1., .62, .3) * pow(s, 7.) * .5 + vec3(1., .82, .55) * pow(s, 900.) * 9.;
+      gl_FragColor = vec4(c, 1.);
+    }`,
+}));
+sky.renderOrder = -1;
+scene.add(sky);
+
+/* ---- light: low sun, sky fill */
+const sun = new THREE.DirectionalLight('#ffd3a3', 2.7);
+sun.target.position.set(0, 0, LZ - 45);
+sun.position.copy(SUN_DIR).multiplyScalar(160).add(sun.target.position);
+if (!small) {
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(2048, 2048);
+  Object.assign(sun.shadow.camera, {left: -85, right: 85, top: 85, bottom: -85, near: 10, far: 420});
+  sun.shadow.bias = -.0004; sun.shadow.normalBias = .05;
+}
+scene.add(sun, sun.target);
+const hemi = new THREE.HemisphereLight('#c4d4ff', '#6e5a40', .55);
+scene.add(hemi);
+
+/* =================================================================
+   4. The building: front and back walls with lit windows, a gold
+      picture frame round the entrance, and the school's name.
+================================================================= */
+// the school's own front: grey stucco, staggered slit windows in teal glass,
+// blue-grey fins in the middle, a glass box with aluminium bands on the right
+// and the blue-and-white tiled planter wall along the bottom
+function facadeTextures(seed, front){
+  const S = 48, rnd = rng(seed), wins = [];
+  const P = (x, y) => [(x + BW / 2) * S, (BH - y) * S];
+  // staggered slits on the left block, as on the building
+  for (let row = 0; row < 3; row++) for (let x = -19; x < -7; x += 1.25 + rnd() * .6) {
+    const w = .45 + rnd() * .55, h = 1.1 + rnd() * .9, y = 4.3 + row * 2.1 + rnd() * .5;
+    if (x + w > -7.4) continue;
+    wins.push({x: x + w / 2, y, w, h, lit: rnd() < .22});
+  }
+  // ground floor windows with white grilles
+  for (let x = -18; x < 20; x += 4.2) { if (Math.abs(x) < (front ? 5.8 : 3.4) || (x > 6 && x < 9)) continue; wins.push({x, y: 1.2, w: 1.5, h: 1.6, lit: rnd() < .3, grille: true}); }
+  const map = canvasTex(BW * S, BH * S, (g, w, h) => {
+    g.fillStyle = '#8b9098'; g.fillRect(0, 0, w, h);
+    speckle(g, w, h, 9000, ['rgba(40,44,52,.09)', 'rgba(255,255,255,.07)'], rnd, 2);
+    // left block: a darker frame standing proud of the wall
+    const [lx0, ly0] = P(-19.6, 10.7), [lx1, ly1] = P(-6.6, 3.7);
+    g.fillStyle = '#5f646d'; g.fillRect(lx0, ly0, lx1 - lx0, ly1 - ly0);
+    g.fillStyle = '#80868f'; g.fillRect(lx0 + .45 * S, ly0 + .45 * S, lx1 - lx0 - .9 * S, ly1 - ly0 - .9 * S);
+    speckle(g, w * .35, h, 2500, ['rgba(40,44,52,.08)', 'rgba(255,255,255,.06)'], rnd, 2);
+    // middle: vertical fins
+    for (let x = -6.2; x < 6.2; x += .62) {
+      if (Math.abs(x) < 3.2) continue;
+      const [fx, fy] = P(x, 10.2), [, fy1] = P(x, 3.9);
+      const fg = g.createLinearGradient(fx, 0, fx + .5 * S, 0); fg.addColorStop(0, '#6f7f96'); fg.addColorStop(1, '#93a3b8');
+      g.fillStyle = fg; g.fillRect(fx, fy, .48 * S, fy1 - fy);
+    }
+    // right: glass box with aluminium bands
+    const [gx0] = P(6.6, 0), [gx1] = P(19.4, 0);
+    const glass = (y0, y1) => { const [, a] = P(0, y1), [, b] = P(0, y0);
+      const gg = g.createLinearGradient(0, a, 0, b); gg.addColorStop(0, '#5fc3d6'); gg.addColorStop(.55, '#2b8fa8'); gg.addColorStop(1, '#1d6a80');
+      g.fillStyle = gg; g.fillRect(gx0, a, gx1 - gx0, b - a);
+      g.fillStyle = 'rgba(255,255,255,.18)'; for (let i = 0; i < 6; i++) { g.beginPath(); const sx = gx0 + rnd() * (gx1 - gx0); g.moveTo(sx, a); g.lineTo(sx + .8 * S, a); g.lineTo(sx + .2 * S, b); g.lineTo(sx - .6 * S, b); g.fill(); }
+      g.fillStyle = '#2f3940'; for (let x = gx0; x <= gx1; x += 1.05 * S) g.fillRect(x, a, .05 * S, b - a); };
+    glass(4.3, 6.6); glass(7.3, 9.8);
+    [[3.6, 4.3], [6.6, 7.3], [9.8, 10.8]].forEach(([y0, y1]) => { const [, a] = P(0, y1), [, b] = P(0, y0); const bg = g.createLinearGradient(0, a, 0, b); bg.addColorStop(0, '#dfe2e6'); bg.addColorStop(1, '#b5bac1'); g.fillStyle = bg; g.fillRect(gx0 - .2 * S, a, gx1 - gx0 + .4 * S, b - a); g.fillStyle = 'rgba(0,0,0,.12)'; for (let x = gx0; x < gx1; x += 1.6 * S) g.fillRect(x, a, 2, b - a); });
+    // parapet and the dark band under the upper floors
+    g.fillStyle = '#6a7079'; g.fillRect(0, 0, w, .35 * S);
+    const [, by] = P(0, 3.75); g.fillStyle = '#5a5f67'; g.fillRect(0, by - .12 * S, w, .24 * S);
+    // windows
+    wins.forEach(o => {
+      const [px, py] = P(o.x - o.w / 2, o.y + o.h), ww = o.w * S, hh = o.h * S;
+      g.fillStyle = o.grille ? '#e9ebee' : '#3a4048'; g.fillRect(px - .06 * S, py - .06 * S, ww + .12 * S, hh + .12 * S);
+      const gg = g.createLinearGradient(px, py, px + ww, py + hh);
+      if (o.lit) { gg.addColorStop(0, '#ffe2b0'); gg.addColorStop(1, '#e9a35c'); } else { gg.addColorStop(0, '#6fd0e0'); gg.addColorStop(.6, '#2f93ab'); gg.addColorStop(1, '#1f6b80'); }
+      g.fillStyle = gg; g.fillRect(px, py, ww, hh);
+      if (o.grille) { g.strokeStyle = 'rgba(240,242,245,.9)'; g.lineWidth = 2; for (let i = 1; i < 6; i++) { g.beginPath(); g.moveTo(px, py + hh * i / 6); g.lineTo(px + ww, py + hh * i / 6); g.stroke(); } }
+    });
+    // tiled planter wall along the bottom, blue, white and grey
+    const [, ty] = P(0, .8);
+    for (let y = ty; y < h; y += .2 * S) for (let x = (((y - ty) / (.2 * S)) % 2) * .2 * S; x < w; x += .4 * S) {
+      const r = rnd(); g.fillStyle = r < .35 ? '#7fa6c4' : r < .7 ? '#e8ecef' : r < .9 ? '#a9b2bb' : '#3f6d93'; g.fillRect(x, y, .38 * S, .18 * S);
+    }
+  });
+  const emissive = canvasTex(BW * S / 2, BH * S / 2, (g, w, h) => {
+    g.fillStyle = '#000'; g.fillRect(0, 0, w, h); g.scale(.5, .5);
+    wins.forEach(o => { if (!o.lit) return; const [px, py] = P(o.x - o.w / 2, o.y + o.h); g.fillStyle = '#ffc888'; g.fillRect(px, py, o.w * S, o.h * S); });
+  });
+  [map, emissive].forEach(t => { t.repeat.set(1 / BW, 1 / BH); t.offset.set(.5, 0); });
+  return {map, emissive};
+}
+function facadeGeo(holeW, holeH){
+  const s = new THREE.Shape();
+  s.moveTo(-BW / 2, 0); s.lineTo(-holeW / 2, 0); s.lineTo(-holeW / 2, holeH); s.lineTo(holeW / 2, holeH); s.lineTo(holeW / 2, 0);
+  s.lineTo(BW / 2, 0); s.lineTo(BW / 2, BH); s.lineTo(-BW / 2, BH); s.closePath();
+  return new THREE.ShapeGeometry(s);
+}
+const facadeMat = ({map, emissive}) => new THREE.MeshStandardMaterial({map, emissive: '#ffffff', emissiveMap: emissive, emissiveIntensity: .7, roughness: .7, metalness: .05});
+const front = new THREE.Mesh(facadeGeo(DW, DH), facadeMat(facadeTextures(11, true)));
+front.receiveShadow = true; scene.add(front);
+const back = new THREE.Mesh(facadeGeo(CW, DH), facadeMat(facadeTextures(23, false)));
+back.position.z = LZ; back.rotation.y = Math.PI; back.receiveShadow = true; back.castShadow = true; scene.add(back);
+
+const plainStucco = canvasTex(512, 512, (g, w, h) => { g.fillStyle = '#8b9098'; g.fillRect(0, 0, w, h); speckle(g, w, h, 9000, ['rgba(40,44,52,.16)', 'rgba(255,255,255,.12)'], rng(5), 2.4); });
+const shellMat = new THREE.MeshStandardMaterial({map: tiled(plainStucco, 6, 2), roughness: .85});
+[-1, 1].forEach(sd => {
+  const side = new THREE.Mesh(new THREE.PlaneGeometry(LEN, BH), shellMat);
+  side.position.set(sd * BW / 2, BH / 2, LZ / 2); side.rotation.y = sd * Math.PI / 2; side.castShadow = true; scene.add(side);
+});
+const roof = new THREE.Mesh(new THREE.BoxGeometry(BW + .6, .5, LEN + .6), new THREE.MeshStandardMaterial({color: '#6a7079', roughness: .9}));
+roof.position.set(0, BH + .25, LZ / 2); roof.castShadow = true; scene.add(roof);
+
+/* ---- a brushed-aluminium picture frame round the entrance, with an
+        orange inner lip in the school's colour: you walk into the photo */
+const gold = new THREE.MeshStandardMaterial({color: '#d4d7dc', metalness: .9, roughness: .3});
+const lipMat = new THREE.MeshStandardMaterial({color: '#e8732a', metalness: .3, roughness: .45});
+const FB = .3;
+[[-(DW / 2 + FB / 2), DH / 2 + FB / 4, FB, DH + FB / 2], [DW / 2 + FB / 2, DH / 2 + FB / 4, FB, DH + FB / 2], [0, DH + FB / 2, DW + 2 * FB, FB]].forEach(([x, y, w, h]) => {
+  const m = new THREE.Mesh(new RoundedBoxGeometry(w, h, .18, 3, .04), gold); m.position.set(x, y, .09); m.castShadow = true; scene.add(m);
+  const lip = new THREE.Mesh(new THREE.BoxGeometry(w * (w > 1 ? .98 : .4), h * (h > 1 ? .99 : .35), .05), lipMat);
+  lip.position.set(x + (w < 1 ? Math.sign(-x) * w * .32 : 0), y - (w > 1 ? h * .34 : 0), .2); scene.add(lip);
+});
+
+/* ---- the school's sign above the frame: logo, orange "Kautilya", white "School" */
+const logoImg = await new Promise(res => {
+  const src = (window.K_IMG || {}).logo || (location.protocol === 'file:' ? null : 'photos/logo.jpg');
+  if (!src) return res(null);
+  const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = src; setTimeout(() => res(null), 3000);
+});
+const signTex = canvasTex(1800, 300, (g, w, h) => {
+  g.clearRect(0, 0, w, h);
+  g.font = '700 200px "Baloo 2", Manrope, sans-serif';
+  const t1 = 'Kautilya', t2 = 'School', gap = 46, lw = logoImg ? 270 : 0;
+  const w1 = g.measureText(t1).width, w2 = g.measureText(t2).width, total = lw + w1 + gap + w2 + (logoImg ? 50 : 0);
+  let x = (w - total) / 2;
+  if (logoImg) {
+    g.save(); g.beginPath(); g.arc(x + lw / 2, h / 2, lw / 2, 0, Math.PI * 2); g.fillStyle = '#fff'; g.fill(); g.clip();
+    const s = lw * .86 / Math.max(logoImg.width, logoImg.height);
+    g.drawImage(logoImg, x + lw / 2 - logoImg.width * s / 2, h / 2 - logoImg.height * s / 2, logoImg.width * s, logoImg.height * s); g.restore();
+    x += lw + 50;
+  }
+  g.textBaseline = 'middle'; g.shadowColor = 'rgba(0,0,0,.35)'; g.shadowBlur = 10; g.shadowOffsetY = 4;
+  g.fillStyle = '#f26b1d'; g.fillText(t1, x, h / 2 + 18); x += w1 + gap;
+  g.fillStyle = '#f4f5f7'; g.fillText(t2, x, h / 2 + 18);
+});
+const sign = new THREE.Mesh(new THREE.PlaneGeometry(6.8, 6.8 * 300 / 1800), new THREE.MeshStandardMaterial({map: signTex, transparent: true, roughness: .4, emissive: '#ffffff', emissiveMap: signTex, emissiveIntensity: .18}));
+sign.position.set(0, DH + FB + .72, .03); scene.add(sign);
+
+/* ---- forecourt: paving, lanterns, planters */
+const paving = canvasTex(512, 512, (g, w, h) => {
+  g.fillStyle = '#b9ab95'; g.fillRect(0, 0, w, h); const r = rng(3);
+  for (let y = 0; y < 4; y++) for (let x = 0; x < 4; x++) { g.fillStyle = `hsl(32,${12 + r() * 8}%,${58 + r() * 9}%)`; g.fillRect(x * 128 + 2, y * 128 + 2, 124, 124); }
+  speckle(g, w, h, 5000, ['rgba(60,45,30,.12)', 'rgba(255,255,255,.12)'], r, 2);
+});
+const court = new THREE.Mesh(new THREE.PlaneGeometry(BW, 24), new THREE.MeshStandardMaterial({map: tiled(paving, BW / 2, 12), roughness: .8}));
+court.rotation.x = -Math.PI / 2; court.position.set(0, .012, 12); court.receiveShadow = true; scene.add(court);
+const iron = new THREE.MeshStandardMaterial({color: '#1d1b1a', metalness: .6, roughness: .45});
+const lampGlow = new THREE.MeshBasicMaterial({color: new THREE.Color('#ffd9a0').multiplyScalar(5)});
+[-1, 1].forEach(sd => {
+  const post = new THREE.Mesh(new THREE.CylinderGeometry(.05, .07, 2.6, 16), iron); post.position.set(sd * 5.3, 1.3, 1.1); scene.add(post);
+  const head = new THREE.Mesh(new THREE.BoxGeometry(.28, .4, .28), lampGlow); head.position.set(sd * 5.3, 2.75, 1.1); scene.add(head);
+  const cap = new THREE.Mesh(new THREE.ConeGeometry(.26, .2, 4), iron); cap.position.set(sd * 5.3, 3.05, 1.1); cap.rotation.y = Math.PI / 4; scene.add(cap);
+  const pl = new THREE.PointLight('#ffcf94', 5, 9, 2); pl.position.set(sd * 5.3, 2.7, 1.3); scene.add(pl);
+  const pot = new THREE.Mesh(new THREE.BoxGeometry(1.1, .6, 1.1), new THREE.MeshStandardMaterial({color: '#6d6355', roughness: .8})); pot.position.set(sd * 7, .3, 1.2); scene.add(pot);
+  const bush = new THREE.Mesh(new THREE.IcosahedronGeometry(.75, 1), new THREE.MeshStandardMaterial({color: '#41562d', roughness: .9, flatShading: true})); bush.position.set(sd * 7, 1.15, 1.2); bush.scale.set(1, 1.2, 1); scene.add(bush);
+});
+const heroSpot = new THREE.SpotLight('#ffe2bb', 9, 0, .42, .8, 2);
+heroSpot.position.set(0, 7.5, 6.5); heroSpot.target.position.set(0, 1.7, 0); scene.add(heroSpot, heroSpot.target);
+
+/* =================================================================
+   5. The picture-doors: the school photo, cut down the middle into
+      two leaves that swing open as you scroll.
+================================================================= */
+function drawCampus(g, w, h){
+  const r = rng(91);
+  const sk = g.createLinearGradient(0, 0, 0, h * .66);
+  sk.addColorStop(0, '#1f2d52'); sk.addColorStop(.45, '#6c6489'); sk.addColorStop(.8, '#e6a477'); sk.addColorStop(1, '#f4c48e');
+  g.fillStyle = sk; g.fillRect(0, 0, w, h);
+  const sg = g.createRadialGradient(w * .8, h * .6, 0, w * .8, h * .6, h * .45); sg.addColorStop(0, 'rgba(255,226,170,.9)'); sg.addColorStop(1, 'rgba(255,200,140,0)');
+  g.fillStyle = sg; g.fillRect(0, 0, w, h);
+  // far trees
+  g.fillStyle = '#34402f'; g.beginPath(); g.moveTo(0, h * .7);
+  for (let x = 0; x <= w; x += 22) g.lineTo(x, h * (.6 + r() * .05 - Math.sin(x * .01) * .015));
+  g.lineTo(w, h * .75); g.lineTo(0, h * .75); g.fill();
+  // the building
+  const base = h * .8;
+  const block = (x0, x1, top, col) => { const bg = g.createLinearGradient(0, top, 0, base); bg.addColorStop(0, col[0]); bg.addColorStop(1, col[1]); g.fillStyle = bg; g.fillRect(x0, top, x1 - x0, base - top); g.fillStyle = '#f8f1e4'; g.fillRect(x0 - 6, top - 10, x1 - x0 + 12, 12); };
+  block(w * .08, w * .36, h * .44, ['#efe2c9', '#d4c09f']);
+  block(w * .64, w * .92, h * .44, ['#efe2c9', '#d4c09f']);
+  block(w * .34, w * .66, h * .35, ['#f3e7cf', '#dac7a6']);
+  block(w * .43, w * .57, h * .22, ['#f5ead4', '#dccaa9']);
+  g.fillStyle = '#f8f1e4'; g.beginPath(); g.moveTo(w * .42, h * .215); g.lineTo(w * .5, h * .15); g.lineTo(w * .58, h * .215); g.fill();
+  g.fillStyle = '#c9a45c'; g.beginPath(); g.arc(w * .5, h * .19, h * .018, 0, Math.PI * 2); g.fill();
+  // windows
+  const win = (x, y, ww, hh) => { const lit = r() < .62; const gg = g.createLinearGradient(0, y, 0, y + hh); if (lit) { gg.addColorStop(0, '#ffe6b5'); gg.addColorStop(1, '#f0a55a'); } else { gg.addColorStop(0, '#68759a'); gg.addColorStop(1, '#2d3753'); } g.fillStyle = '#3b3226'; g.fillRect(x - 3, y - 3, ww + 6, hh + 6); g.fillStyle = gg; g.fillRect(x, y, ww, hh); g.fillStyle = '#3b3226'; g.fillRect(x + ww / 2 - 1.5, y, 3, hh); };
+  [[.1, .34, .48], [.66, .9, .48]].forEach(([a, b, t]) => { for (let row = 0; row < 3; row++) for (let x = w * a; x < w * b - 30; x += 46) win(x + 6, h * t + row * h * .105, 26, h * .06); });
+  for (let row = 0; row < 2; row++) for (let x = w * .36; x < w * .64 - 30; x += 46) { if (x > w * .42 && x < w * .56) continue; win(x + 8, h * .39 + row * h * .11, 26, h * .06); }
+  win(w * .47, h * .245, w * .06, h * .06);
+  // name board
+  g.fillStyle = '#1b2846'; g.fillRect(w * .37, h * .585, w * .26, h * .05);
+  g.strokeStyle = '#c9a45c'; g.lineWidth = 2; g.strokeRect(w * .37 + 4, h * .585 + 4, w * .26 - 8, h * .05 - 8);
+  g.fillStyle = '#ecd098'; g.textAlign = 'center'; g.font = `700 ${Math.round(h * .022)}px Manrope, sans-serif`; g.letterSpacing = '3px';
+  g.fillText('KAUTILYA SENIOR SECONDARY SCHOOL', w * .5, h * .617);
+  // entrance arch
+  g.fillStyle = '#3a2a1c'; g.beginPath(); g.moveTo(w * .46, base); g.lineTo(w * .46, h * .69); g.arc(w * .5, h * .69, w * .04, Math.PI, 0); g.lineTo(w * .54, base); g.fill();
+  const dg = g.createLinearGradient(0, h * .66, 0, base); dg.addColorStop(0, '#ffd99a'); dg.addColorStop(1, '#d98b44');
+  g.fillStyle = dg; g.beginPath(); g.moveTo(w * .468, base); g.lineTo(w * .468, h * .695); g.arc(w * .5, h * .695, w * .032, Math.PI, 0); g.lineTo(w * .532, base); g.fill();
+  // lawn, path, steps
+  const lg = g.createLinearGradient(0, base, 0, h); lg.addColorStop(0, '#4e6a35'); lg.addColorStop(1, '#2a3b1e');
+  g.fillStyle = lg; g.fillRect(0, base, w, h - base);
+  speckle(g, w, h - base, 3000, ['rgba(20,40,10,.25)', 'rgba(140,170,90,.18)'], r, 3);
+  g.fillStyle = '#cdbb9b'; g.beginPath(); g.moveTo(w * .45, base); g.lineTo(w * .55, base); g.lineTo(w * .7, h); g.lineTo(w * .3, h); g.fill();
+  for (let i = 0; i < 3; i++) { g.fillStyle = i % 2 ? '#ddd0b6' : '#c8b796'; g.fillRect(w * (.44 - i * .01), base + i * 7, w * (.12 + i * .02), 7); }
+  // trees and lamps
+  const tree = (x, y, s) => { g.fillStyle = '#4a3624'; g.fillRect(x - 3 * s, y - 40 * s, 6 * s, 40 * s); g.fillStyle = '#3c5428'; [[-14, -55, 26], [12, -58, 24], [0, -74, 28], [0, -50, 22]].forEach(([dx, dy, rr]) => { g.beginPath(); g.arc(x + dx * s, y + dy * s, rr * s, 0, Math.PI * 2); g.fill(); }); g.fillStyle = 'rgba(255,210,150,.18)'; g.beginPath(); g.arc(x + 10 * s, y - 70 * s, 18 * s, 0, Math.PI * 2); g.fill(); };
+  tree(w * .05, base + 40, 2.1); tree(w * .2, base + 22, 1.4); tree(w * .82, base + 26, 1.5); tree(w * .96, base + 46, 2.2);
+  [[.38, 1], [.62, 1]].forEach(([x]) => { g.fillStyle = '#1d1b1a'; g.fillRect(w * x - 2, base - 10, 4, 80); const lg2 = g.createRadialGradient(w * x, base - 14, 0, w * x, base - 14, 40); lg2.addColorStop(0, 'rgba(255,225,170,.95)'); lg2.addColorStop(1, 'rgba(255,200,130,0)'); g.fillStyle = lg2; g.fillRect(w * x - 40, base - 54, 80, 80); });
+  // flag on the tower
+  g.fillStyle = '#eee'; g.fillRect(w * .5 - 1.5, h * .06, 3, h * .1);
+  [['#FF9933', 0], ['#ffffff', 1], ['#138808', 2]].forEach(([c, i]) => { g.fillStyle = c; g.fillRect(w * .5 + 1.5, h * .06 + i * h * .012, w * .036, h * .012); });
+  g.strokeStyle = '#000080'; g.lineWidth = 1; g.beginPath(); g.arc(w * .5 + 1.5 + w * .018, h * .06 + h * .018, h * .005, 0, Math.PI * 2); g.stroke();
+  // grain + vignette, like a print
+  speckle(g, w, h, 16000, ['rgba(0,0,0,.05)', 'rgba(255,255,255,.04)'], r, 2);
+  const vg = g.createRadialGradient(w / 2, h / 2, h * .3, w / 2, h / 2, w * .62); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(10,8,20,.42)');
+  g.fillStyle = vg; g.fillRect(0, 0, w, h);
+}
+const DOOR_ASPECT = DW / DH;
+const woodDark = new THREE.MeshStandardMaterial({color: '#2b1c12', roughness: .55});
+const doorLeaves = [], doorMats = [];
+[-1, 1].forEach(side => {
+  const pivot = new THREE.Group(); pivot.position.set(side * DW / 2, 0, 0);
+  const slab = new THREE.Mesh(new THREE.BoxGeometry(DW / 2, DH, .07), woodDark);
+  slab.position.set(-side * DW / 4, DH / 2, -.04); slab.castShadow = true;
+  const mat = new THREE.MeshStandardMaterial({roughness: .7, emissive: '#ffffff', emissiveIntensity: .2, color: '#d9d9d9'});
+  const face = new THREE.Mesh(new THREE.PlaneGeometry(DW / 2 - .004, DH - .004), mat);
+  face.position.set(-side * DW / 4, DH / 2, .0);
+  pivot.add(slab, face); scene.add(pivot);
+  doorLeaves.push({pivot, side}); doorMats.push({mat, side});
+});
+// the seam where the photo splits: a hairline of gold
+const seam = new THREE.Mesh(new THREE.BoxGeometry(.012, DH, .01), gold); seam.position.set(0, DH / 2, .006); scene.add(seam);
+function setHero(tex, aspect){
+  let rx = 1, ry = 1;
+  if (aspect > DOOR_ASPECT) rx = DOOR_ASPECT / aspect; else ry = aspect / DOOR_ASPECT;
+  const ox = (1 - rx) / 2, oy = (1 - ry) / 2;
+  doorMats.forEach(({mat, side}) => {
+    const t = tex.clone(); t.repeat.set(rx / 2, ry); t.offset.set(side < 0 ? ox : ox + rx / 2, oy); t.needsUpdate = true;
+    mat.map = t; mat.emissiveMap = t; mat.needsUpdate = true;
+  });
+}
+// the curtain stays up until the real photo is on the doors; the drawn stand-in is only for when it can't be had
+await new Promise(done => {
+  const t = setTimeout(() => { setHero(canvasTex(1600, 1024, drawCampus), 1600 / 1024); done(); }, 12000);
+  loadPhoto('hero', (tex, a) => { clearTimeout(t); setHero(tex, a); done(); }, () => { clearTimeout(t); setHero(canvasTex(1600, 1024, drawCampus), 1600 / 1024); done(); });
+});
+
+/* =================================================================
+   6. The lobby: warm walls with a walnut dado, marble floor, cove
+      lights, a gallery of framed school photos and a trophy cabinet.
+================================================================= */
+const wallTex = canvasTex(1024, 922, (g, w, h) => {
+  const S = w / 4, r = rng(17), Y = y => h - y * S;
+  g.fillStyle = '#efe5d4'; g.fillRect(0, 0, w, h);
+  speckle(g, w, h, 7000, ['rgba(120,95,60,.06)', 'rgba(255,255,255,.12)'], r, 3);
+  const dg = g.createLinearGradient(0, Y(1.05), 0, h); dg.addColorStop(0, '#5a3a25'); dg.addColorStop(1, '#3d2618');
+  g.fillStyle = dg; g.fillRect(0, Y(1.05), w, 1.05 * S);
+  for (let i = 0; i < 160; i++) { g.strokeStyle = `rgba(${20 + r() * 30},${10 + r() * 15},5,${.12 + r() * .15})`; g.lineWidth = 1 + r() * 2; const y = Y(r() * 1.0); g.beginPath(); g.moveTo(0, y); g.bezierCurveTo(w * .3, y + (r() - .5) * 10, w * .7, y + (r() - .5) * 10, w, y + (r() - .5) * 6); g.stroke(); }
+  for (let x = 0; x < 4; x++) { g.strokeStyle = 'rgba(0,0,0,.35)'; g.lineWidth = 3; g.strokeRect(x * S + .12 * S, Y(.9), .76 * S, .72 * S); g.strokeStyle = 'rgba(255,220,180,.12)'; g.lineWidth = 1.5; g.strokeRect(x * S + .12 * S + 3, Y(.9) + 3, .76 * S - 6, .72 * S - 6); }
+  g.fillStyle = '#c9a76a'; g.fillRect(0, Y(1.1), w, .05 * S); g.fillStyle = 'rgba(0,0,0,.25)'; g.fillRect(0, Y(1.05), w, 4);
+  g.fillStyle = '#2b1c12'; g.fillRect(0, Y(.12), w, .12 * S);
+  g.fillStyle = '#d9cdb8'; g.fillRect(0, 0, w, .1 * S);
+});
+const wallMat = new THREE.MeshStandardMaterial({map: tiled(wallTex, LEN / 4, 1), roughness: .7, emissive: '#ffffff', emissiveMap: wallTex, emissiveIntensity: .14});
+[-1, 1].forEach(sd => {
+  const wall = new THREE.Mesh(new THREE.PlaneGeometry(LEN, CH), wallMat);
+  wall.position.set(sd * CW / 2, CH / 2, LZ / 2); wall.rotation.y = -sd * Math.PI / 2; wall.receiveShadow = true; scene.add(wall);
+});
+const marble = canvasTex(1024, 1024, (g, w, h) => {
+  const r = rng(29);
+  for (let y = 0; y < 2; y++) for (let x = 0; x < 2; x++) {
+    g.fillStyle = `hsl(36,${10 + r() * 6}%,${74 + r() * 8}%)`; g.fillRect(x * 512, y * 512, 512, 512);
+    for (let v = 0; v < 7; v++) { g.strokeStyle = `rgba(120,100,80,${.08 + r() * .12})`; g.lineWidth = .8 + r() * 2.2; g.beginPath(); let px = x * 512 + r() * 512, py = y * 512; g.moveTo(px, py); for (let s = 0; s < 6; s++) { px += (r() - .5) * 140; py += 512 / 6; g.lineTo(Math.min(x * 512 + 510, Math.max(x * 512 + 2, px)), py); } g.stroke(); }
+  }
+  speckle(g, w, h, 6000, ['rgba(90,70,50,.08)', 'rgba(255,255,255,.18)'], r, 2);
+  g.strokeStyle = 'rgba(60,45,35,.55)'; g.lineWidth = 3; [0, 512, 1024].forEach(p => { g.beginPath(); g.moveTo(p, 0); g.lineTo(p, h); g.stroke(); g.beginPath(); g.moveTo(0, p); g.lineTo(w, p); g.stroke(); });
+});
+const floorMat = new THREE.MeshStandardMaterial({map: tiled(marble, CW / 2, LEN / 2), roughness: .22, transparent: !small, opacity: small ? 1 : .62});
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(CW, LEN), floorMat);
+floor.rotation.x = -Math.PI / 2; floor.position.set(0, .004, LZ / 2); floor.receiveShadow = true; scene.add(floor);
+let mirror = null;
+if (!small) {
+  mirror = new Reflector(new THREE.PlaneGeometry(CW, LEN), {textureWidth: innerWidth * .4, textureHeight: innerHeight * .4, color: '#b9b4ad', multisample: 0});
+  mirror.rotation.x = -Math.PI / 2; mirror.position.set(0, .001, LZ / 2); scene.add(mirror);
+}
+const ceil = new THREE.Mesh(new THREE.PlaneGeometry(CW, LEN), new THREE.MeshStandardMaterial({color: '#e9e2d6', roughness: .9}));
+ceil.rotation.x = Math.PI / 2; ceil.position.set(0, CH, LZ / 2); scene.add(ceil);
+// cove light strips along both edges of the ceiling lead the eye to the doors
+const cove = new THREE.MeshBasicMaterial({color: new THREE.Color('#ffd7a0').multiplyScalar(2.2)});
+[-1, 1].forEach(sd => { const s = new THREE.Mesh(new THREE.BoxGeometry(.04, .03, LEN), cove); s.position.set(sd * (CW / 2 - .12), CH - .03, LZ / 2); scene.add(s); });
+// the wall above each doorway, seen from inside
+// the picture-doors are wider than the lobby; either side, a return wall hides them as they fold away
+[-1, 1].forEach(sd => { const r = new THREE.Mesh(new THREE.PlaneGeometry((DW - CW) / 2, DH), new THREE.MeshStandardMaterial({color: '#e9dfcd', roughness: .8})); r.position.set(sd * (DW + CW) / 4, DH / 2, -.005); scene.add(r); });
+const lintelIn = new THREE.Mesh(new THREE.PlaneGeometry(CW, CH - DH), new THREE.MeshStandardMaterial({color: '#e9dfcd', roughness: .8}));
+lintelIn.position.set(0, (CH + DH) / 2, -.01); lintelIn.rotation.y = Math.PI; scene.add(lintelIn);
+const groundSign = canvasTex(1200, 96, (g, w, h) => {
+  g.fillStyle = '#1b2846'; g.fillRect(0, 0, w, h);
+  g.fillStyle = '#ffb27a'; g.textAlign = 'center'; g.font = '700 46px Manrope, sans-serif'; g.letterSpacing = '18px'; g.fillText('TO THE GROUND', w / 2 + 9, 64);
+});
+const lintelOut = new THREE.Mesh(new THREE.PlaneGeometry(CW, CH - DH), new THREE.MeshStandardMaterial({map: groundSign, emissive: '#ffffff', emissiveMap: groundSign, emissiveIntensity: .35, roughness: .6}));
+lintelOut.position.set(0, (CH + DH) / 2, LZ + .01); scene.add(lintelOut);
+
+const canMat = new THREE.MeshStandardMaterial({color: '#d8d2c6', metalness: .5, roughness: .35, side: THREE.DoubleSide});
+const lensMat = new THREE.MeshBasicMaterial({color: new THREE.Color('#fff0d6').multiplyScalar(3)});
+let spotN = 0;
+for (let z = -1.6; z > LZ + .8; z -= 2.6) {
+  const can = new THREE.Mesh(new THREE.CylinderGeometry(.1, .1, .04, 32, 1, true), canMat); can.position.set(0, CH - .02, z); scene.add(can);
+  const lens = new THREE.Mesh(new THREE.CircleGeometry(.07, 32), lensMat); lens.position.set(0, CH - .03, z); lens.rotation.x = Math.PI / 2; scene.add(lens);
+  if (spotN++ % 3 === 0) { const s = new THREE.SpotLight('#ffd9a8', 34, 0, .8, .85, 2); s.position.set(0, CH - .05, z); s.target.position.set(0, 0, z - .4); scene.add(s, s.target); }
+}
+
+/* ---- the frames: walnut, cream mount, lit print, brass lamp, label */
+const FR = [
+  ['classrooms', 'In the Classroom',   'Learning together, every day',      -1,  -3.2, 1.55, 18],
+  ['computer',   'Computer Lab',       'A computer at every desk',           1,  -5.8, 1.6,  205],
+  ['library',    'The Library',        'Open shelves, good books',          -1,  -8.4, 1.5,  160],
+  ['science',    'Science Lab',        'Experiments, hands-on',              1, -11.0, 1.55, 225],
+  ['indoor',     'Indoor Games',       'Badminton and table tennis',        -1, -13.6, 1.5,  28],
+  ['cultural',   'Cultural Day',       'Colours of Rajasthan',               1, -16.2, 1.45, 330],
+  ['annual',     'Annual Day',         '“Passion 2025” on stage',            1, -21.4, 1.7,  280],
+  ['cricket',    'Cricket Academy',    'Our own turf pitch',                -1, -24.0, 1.6,  130],
+  ['results',    'Our Toppers',        'Class X board results',              1, -26.6, 1.05, 42],
+];
+const HANG = 1.78;
+const frameMat = new THREE.MeshStandardMaterial({color: '#2c1c12', roughness: .42, metalness: .05});
+const mountMat = new THREE.MeshStandardMaterial({color: '#efe8db', roughness: .92});
+const brass = new THREE.MeshStandardMaterial({color: '#b08a4a', metalness: .85, roughness: .3});
+const lampBar = new THREE.MeshBasicMaterial({color: new THREE.Color('#ffe2b4').multiplyScalar(4)});
+const fanTex = canvasTex(256, 320, (g, w, h) => {
+  g.translate(w / 2, 0); g.scale(1, 1.55);
+  const r = g.createRadialGradient(0, 0, 0, 0, 0, w * .55);
+  r.addColorStop(0, 'rgba(255,222,176,.95)'); r.addColorStop(.3, 'rgba(255,208,156,.5)'); r.addColorStop(.75, 'rgba(255,196,140,.08)'); r.addColorStop(1, 'rgba(255,190,130,0)');
+  g.fillStyle = r; g.fillRect(-w / 2, 0, w, h);
+  g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'destination-in';
+  const v = g.createLinearGradient(0, 0, 0, h); v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(.14, 'rgba(0,0,0,1)'); v.addColorStop(1, 'rgba(0,0,0,1)');
+  g.fillStyle = v; g.fillRect(0, 0, w, h);
+  const hz = g.createLinearGradient(0, 0, w, 0); hz.addColorStop(0, 'rgba(0,0,0,0)'); hz.addColorStop(.18, 'rgba(0,0,0,1)'); hz.addColorStop(.82, 'rgba(0,0,0,1)'); hz.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = hz; g.fillRect(0, 0, w, h);
+});
+const fanMat = new THREE.MeshBasicMaterial({map: fanTex, color: '#d9b98f', transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: .45});
+
+// until the real photo arrives: an exhibition card that says what goes here
+function posterTex(title, sub, hue, k){
+  return canvasTex(900, 600, (g, w, h) => {
+    const bg = g.createLinearGradient(0, 0, w, h); bg.addColorStop(0, `hsl(${hue},34%,30%)`); bg.addColorStop(1, `hsl(${hue + 18},40%,14%)`);
+    g.fillStyle = bg; g.fillRect(0, 0, w, h);
+    g.fillStyle = 'rgba(255,255,255,.06)'; g.font = '600 420px "Cormorant Garamond", serif'; g.textAlign = 'right'; g.fillText(String(k + 1).padStart(2, '0'), w - 30, h - 40);
+    g.strokeStyle = 'rgba(236,208,152,.55)'; g.lineWidth = 2; g.strokeRect(28, 28, w - 56, h - 56);
+    g.textAlign = 'left'; g.fillStyle = '#ecd098'; g.font = '700 22px Manrope, sans-serif'; g.letterSpacing = '6px'; g.fillText('KAUTILYA SCHOOL', 70, 110);
+    g.letterSpacing = '0px'; g.fillStyle = '#f6f0e4'; g.font = 'italic 500 92px "Cormorant Garamond", serif'; g.fillText(title, 66, 300);
+    g.fillStyle = 'rgba(246,240,228,.78)'; g.font = '400 30px Manrope, sans-serif'; g.fillText(sub, 70, 356);
+    g.fillStyle = 'rgba(236,208,152,.8)'; g.font = '700 17px Manrope, sans-serif'; g.letterSpacing = '5px'; g.fillText('PHOTO COMING SOON', 70, h - 74);
+    const vg = g.createRadialGradient(w / 2, h / 2, h * .2, w / 2, h / 2, w * .7); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,.35)');
+    g.fillStyle = vg; g.fillRect(0, 0, w, h);
+  });
+}
+function labelTex(k, title, sub){
+  return canvasTex(600, 320, (g, w, h) => {
+    g.fillStyle = '#f2ede4'; g.fillRect(0, 0, w, h);
+    g.fillStyle = '#8a7a66'; g.font = '600 26px Manrope, sans-serif'; g.fillText(`No. ${String(k + 1).padStart(2, '0')}`, 34, 62);
+    g.fillStyle = '#1d2333'; g.font = 'italic 500 56px "Cormorant Garamond", serif'; g.fillText(title, 34, 150);
+    g.fillStyle = '#5c5047'; g.font = '400 27px Manrope, sans-serif'; g.fillText(sub, 34, 206);
+    g.fillStyle = '#9a7632'; g.font = '700 19px Manrope, sans-serif'; g.letterSpacing = '3px'; g.fillText('KAUTILYA · KOTA', 34, 272);
+  });
+}
+function buildFrame(tex, aspect, fw, label){
+  const fh = fw / aspect, B = .055, M = .09, g = new THREE.Group();
+  const outer = new THREE.Mesh(new RoundedBoxGeometry(fw + 2 * (B + M), fh + 2 * (B + M), .045, 2, .006), frameMat); outer.position.z = .0225;
+  const mount = new THREE.Mesh(new THREE.PlaneGeometry(fw + 2 * M, fh + 2 * M), mountMat); mount.position.z = .046;
+  const photo = new THREE.Mesh(new THREE.PlaneGeometry(fw, fh), new THREE.MeshStandardMaterial({map: tex, roughness: .5, emissive: '#ffffff', emissiveMap: tex, emissiveIntensity: .42}));
+  photo.position.z = .048;
+  const top = fh / 2 + B + M;
+  const bar = new THREE.Mesh(new THREE.CylinderGeometry(.022, .022, fw * .55, 20), brass); bar.rotation.z = Math.PI / 2; bar.position.set(0, top + .14, .2);
+  const glow = new THREE.Mesh(new THREE.BoxGeometry(fw * .5, .006, .02), lampBar); glow.position.set(0, top + .12, .2);
+  const arm = new THREE.Mesh(new THREE.CylinderGeometry(.008, .008, .2, 10), brass); arm.rotation.x = Math.PI / 2; arm.position.set(0, top + .14, .1);
+  const fanH = fh + 2 * (B + M) + .75;
+  const fan = new THREE.Mesh(new THREE.PlaneGeometry(fw * 1.9, fanH), fanMat); fan.position.set(0, top + .1 - fanH / 2, .004);
+  const card = new THREE.Mesh(new THREE.PlaneGeometry(.3, .16), new THREE.MeshStandardMaterial({map: labelTex(...label), roughness: .9}));
+  card.position.set(fw / 2 + B + M + .26, -fh / 2 + .08, .006);
+  g.add(fan, outer, mount, photo, bar, glow, arm, card);
+  return g;
+}
+const frames = FR.map(([key, title, sub, sd, z, fw, hue], k) => {
+  const f = {key, title, sub, sd, z, fw, k, group: null};
+  f.place = (tex, aspect) => {
+    if (f.group) scene.remove(f.group);
+    f.group = buildFrame(tex, aspect, fw, [k, title, sub]);
+    f.group.position.set(sd * (CW / 2 - .002), HANG, z);
+    f.group.rotation.y = sd < 0 ? Math.PI / 2 : -Math.PI / 2;
+    scene.add(f.group);
+  };
+  loadPhoto(key, f.place, () => f.place(posterTex(title, sub, hue, k), 1.5));
+  return f;
+});
+
+/* ---- trophy cabinet: the school's cups, lit from above */
+(() => {
+  const g = new THREE.Group(); g.position.set(-CW / 2, 0, -18.8); g.rotation.y = Math.PI / 2;
+  const W = 2.3, D = .46;
+  const base = new THREE.Mesh(new THREE.BoxGeometry(W, .85, D), woodDark); base.position.set(0, .425, D / 2); g.add(base);
+  const topBox = new THREE.Mesh(new THREE.BoxGeometry(W, .14, D), woodDark); topBox.position.set(0, 2.32, D / 2); g.add(topBox);
+  const strip = new THREE.Mesh(new THREE.BoxGeometry(W - .1, .01, .04), lampBar); strip.position.set(0, 2.245, D - .06); g.add(strip);
+  const back = new THREE.Mesh(new THREE.PlaneGeometry(W, 1.4), new THREE.MeshStandardMaterial({color: '#1b2846', roughness: .7})); back.position.set(0, 1.55, .01); g.add(back);
+  const glass = new THREE.MeshStandardMaterial({color: '#dfeef2', transparent: true, opacity: .12, roughness: .04, metalness: .2, depthWrite: false});
+  const pane = new THREE.Mesh(new THREE.BoxGeometry(W - .02, 1.4, D - .02), glass); pane.position.set(0, 1.55, D / 2); g.add(pane);
+  [1.25, 1.72].forEach(y => { const sh = new THREE.Mesh(new THREE.BoxGeometry(W - .06, .015, D - .06), glass); sh.position.set(0, y, D / 2); g.add(sh); });
+  [-W / 2, W / 2].forEach(x => { const post = new THREE.Mesh(new THREE.BoxGeometry(.04, 1.4, .04), brass); post.position.set(x, 1.55, D - .02); g.add(post); });
+  const cupGold = new THREE.MeshStandardMaterial({color: '#d8ae52', metalness: 1, roughness: .22});
+  const cup = new THREE.LatheGeometry([[0, 0], [.09, 0], [.09, .03], [.035, .05], [.025, .12], [.06, .15], [.088, .25], [.082, .27], [0, .27]].map(([x, y]) => new THREE.Vector2(x, y)), 28);
+  const placeCup = (x, y, s) => { const m = new THREE.Mesh(cup, cupGold); m.position.set(x, y, D / 2); m.scale.setScalar(s); g.add(m); };
+  [[-.8, .86, 1.5], [-.3, .86, 1.9], [.25, .86, 1.6], [.75, .86, 1.3], [-.6, 1.26, 1.1], [0, 1.26, 1.3], [.6, 1.26, 1.1], [-.35, 1.73, 1], [.35, 1.73, 1]].forEach(a => placeCup(...a));
+  const plaque = canvasTex(800, 120, (c, w, h) => { c.fillStyle = '#1b2846'; c.fillRect(0, 0, w, h); c.fillStyle = '#ffb27a'; c.textAlign = 'center'; c.font = 'italic 600 64px "Cormorant Garamond", serif'; c.fillText('Hall of Achievements', w / 2, 80); });
+  const pl = new THREE.Mesh(new THREE.PlaneGeometry(1.6, .24), new THREE.MeshStandardMaterial({map: plaque, emissive: '#ffffff', emissiveMap: plaque, emissiveIntensity: .25})); pl.position.set(0, 2.7, .02); g.add(pl);
+  const light = new THREE.PointLight('#ffdcae', 2.2, 2.4, 2); light.position.set(0, 2.1, D); g.add(light);
+  scene.add(g);
+})();
+
+/* ---- glass doors at the end, opening onto the ground */
+const glassMat = new THREE.MeshStandardMaterial({color: '#d4e6ee', transparent: true, opacity: .13, roughness: .04, metalness: .15, depthWrite: false, side: THREE.DoubleSide});
+const metal = new THREE.MeshStandardMaterial({color: '#2a2a2d', metalness: .7, roughness: .35});
+const glassLeaves = [];
+[-1, 1].forEach(side => {
+  const pivot = new THREE.Group(); pivot.position.set(side * CW / 2, 0, LZ);
+  const lw = CW / 2, cx = -side * lw / 2;
+  [[cx - lw / 2 + .04, DH / 2, .08, DH], [cx + lw / 2 - .04, DH / 2, .08, DH], [cx, DH - .04, lw, .08], [cx, .06, lw, .12]].forEach(([x, y, w, h]) => {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, .07), metal); m.position.set(x, y, 0); pivot.add(m);
+  });
+  const pane = new THREE.Mesh(new THREE.PlaneGeometry(lw - .14, DH - .18), glassMat); pane.position.set(cx, DH / 2 + .02, 0); pivot.add(pane);
+  const handle = new THREE.Mesh(new THREE.CylinderGeometry(.018, .018, 1.1, 12), brass); handle.position.set(cx + side * (lw / 2 - .22), 1.15, .07); pivot.add(handle);
+  scene.add(pivot); glassLeaves.push({pivot, side});
+});
+
+// dust in the lobby air, kept out of the floor's reflection
+const mote = canvasTex(64, 64, (g, w, h) => { const r = g.createRadialGradient(32, 32, 0, 32, 32, 32); r.addColorStop(0, 'rgba(255,255,255,1)'); r.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = r; g.fillRect(0, 0, w, h); });
+const dustN = small ? 90 : 240, dustPos = new Float32Array(dustN * 3);
+for (let i = 0; i < dustN; i++) { dustPos[i * 3] = (Math.random() - .5) * CW * .9; dustPos[i * 3 + 1] = Math.random() * CH; dustPos[i * 3 + 2] = -Math.random() * LEN; }
+const dustGeo = new THREE.BufferGeometry(); dustGeo.setAttribute('position', new THREE.BufferAttribute(dustPos, 3));
+const dust = new THREE.Points(dustGeo, new THREE.PointsMaterial({size: .018, map: mote, transparent: true, opacity: .45, depthWrite: false, blending: THREE.AdditiveBlending, color: '#ffe3bd'}));
+scene.add(dust);
+if (mirror) { const reflect = mirror.onBeforeRender.bind(mirror); mirror.onBeforeRender = (...a) => { dust.visible = false; reflect(...a); dust.visible = true; }; }
+
+/* =================================================================
+   7. The ground: the Kautilya Cricket Academy's outfield and turf
+      pitch, practice nets, pavilion, basketball court, floodlights,
+      the flag, palms, trees and the hills towards Rawatbhata.
+================================================================= */
+const earth = canvasTex(512, 512, (g, w, h) => {
+  g.fillStyle = '#8c8655'; g.fillRect(0, 0, w, h); const r = rng(41);
+  for (let i = 0; i < 70; i++) { g.fillStyle = r() < .5 ? 'rgba(170,140,90,.22)' : 'rgba(80,100,45,.22)'; g.beginPath(); g.arc(r() * w, r() * h, 10 + r() * 50, 0, Math.PI * 2); g.fill(); }
+  speckle(g, w, h, 9000, ['rgba(60,50,30,.18)', 'rgba(210,190,140,.16)', 'rgba(90,110,50,.2)'], r, 3);
+});
+const land = new THREE.Mesh(new THREE.PlaneGeometry(900, 900), new THREE.MeshStandardMaterial({map: tiled(earth, 110, 110), roughness: 1}));
+land.rotation.x = -Math.PI / 2; land.position.set(0, -.03, FZ); land.receiveShadow = true; scene.add(land);
+
+// the cricket ground: a round outfield with mowing stripes, the boundary
+// rope, the 30-yard circle and a turf pitch in the middle
+const GR = 42;                                            // radius of the outfield
+const fieldTex = canvasTex(1600, 1600, (g, w, h) => {
+  const FW = 2 * GR, S = w / FW, X = x => (x + GR) * S, Z = z => (z + GR) * S, r = rng(57);
+  g.clearRect(0, 0, w, h);
+  g.save(); g.beginPath(); g.arc(X(0), Z(0), GR * S, 0, Math.PI * 2); g.clip();
+  for (let z = -GR, i = 0; z < GR; z += 3.2, i++) { g.fillStyle = i % 2 ? '#4f8a3a' : '#5c9944'; g.fillRect(0, Z(z), w, 3.2 * S + 1); }
+  for (let i = 0; i < 40; i++) { g.fillStyle = 'rgba(160,150,80,.12)'; g.beginPath(); g.arc(r() * w, r() * h, (2 + r() * 6) * S, 0, Math.PI * 2); g.fill(); }
+  speckle(g, w, h, 30000, ['rgba(20,50,10,.2)', 'rgba(170,210,120,.14)'], r, 2);
+  const rim = g.createRadialGradient(X(0), Z(0), (GR - 3) * S, X(0), Z(0), GR * S); rim.addColorStop(0, 'rgba(120,110,60,0)'); rim.addColorStop(1, 'rgba(120,110,60,.45)');
+  g.fillStyle = rim; g.fillRect(0, 0, w, h);
+  g.restore();
+  // the square: the match pitch and two practice strips
+  [-3.4, 0, 3.4].forEach((x, i) => {
+    const pg = g.createLinearGradient(X(x - 1.5), 0, X(x + 1.5), 0); pg.addColorStop(0, i === 1 ? '#c9b07a' : '#9fae68'); pg.addColorStop(.5, i === 1 ? '#d8c28e' : '#aab873'); pg.addColorStop(1, i === 1 ? '#c9b07a' : '#9fae68');
+    g.fillStyle = pg; g.fillRect(X(x - 1.52), Z(-10.06 - 1.3), 3.04 * S, (20.12 + 2.6) * S);
+  });
+  g.save(); g.beginPath(); g.rect(X(-1.52), Z(-11.4), 3.04 * S, 22.8 * S); g.clip(); speckle(g, w, h, 4000, ['rgba(90,70,40,.25)', 'rgba(255,240,200,.2)'], r, 2); g.restore();
+  g.strokeStyle = '#fff'; g.lineWidth = 2.4;
+  [-1, 1].forEach(e => {
+    const pop = e * (10.06 - 1.22), bowl = e * 10.06;
+    g.beginPath(); g.moveTo(X(-1.83), Z(pop)); g.lineTo(X(1.83), Z(pop)); g.stroke();
+    g.beginPath(); g.moveTo(X(-1.32), Z(bowl)); g.lineTo(X(1.32), Z(bowl)); g.stroke();
+    [-1.32, 1.32].forEach(x => { g.beginPath(); g.moveTo(X(x), Z(bowl)); g.lineTo(X(x), Z(pop + e * .0)); g.stroke(); });
+  });
+  // 30-yard circle, dotted
+  g.setLineDash([.6 * S, 1.6 * S]); g.lineWidth = 3; g.beginPath(); g.arc(X(0), Z(0), 24 * S, 0, Math.PI * 2); g.stroke(); g.setLineDash([]);
+  // boundary rope
+  g.strokeStyle = '#f6f6f2'; g.lineWidth = .16 * S; g.beginPath(); g.arc(X(0), Z(0), (GR - 2) * S, 0, Math.PI * 2); g.stroke();
+});
+const field = new THREE.Mesh(new THREE.PlaneGeometry(2 * GR, 2 * GR), new THREE.MeshStandardMaterial({map: fieldTex, roughness: .95, alphaTest: .5}));
+field.rotation.x = -Math.PI / 2; field.position.set(0, .02, FZ); field.receiveShadow = true; scene.add(field);
+
+const white = new THREE.MeshStandardMaterial({color: '#f4f4f0', roughness: .4});
+const wood = new THREE.MeshStandardMaterial({color: '#e8d9b0', roughness: .6});
+// stumps and bails at both ends
+[-1, 1].forEach(e => {
+  [-.115, 0, .115].forEach(dx => { const st = new THREE.Mesh(new THREE.CylinderGeometry(.018, .018, .71, 8), wood); st.position.set(dx, .355, FZ + e * 10.06); st.castShadow = true; scene.add(st); });
+  [-.057, .057].forEach(dx => { const b = new THREE.Mesh(new THREE.CylinderGeometry(.008, .008, .11, 6), wood); b.rotation.z = Math.PI / 2; b.position.set(dx, .72, FZ + e * 10.06); scene.add(b); });
+});
+// sight screen behind the bowler's arm at the far end (the near one would block the doors' view)
+[-1].forEach(e => {
+  const g = new THREE.Group(); g.position.set(0, 0, FZ + e * (GR + 2.5));
+  const screen = new THREE.Mesh(new THREE.BoxGeometry(11, 3.8, .12), white); screen.position.y = 2.6; screen.castShadow = true; g.add(screen);
+  [-5, -1.7, 1.7, 5].forEach(x => { const leg = new THREE.Mesh(new THREE.BoxGeometry(.12, 2.6, .12), metal); leg.position.set(x, .7, e * .4); g.add(leg); });
+  scene.add(g);
+});
+// boundary boards in the school's colours
+const boardTex = canvasTex(1024, 128, (g, w, h) => {
+  g.fillStyle = '#1f4fa8'; g.fillRect(0, 0, w, h); g.fillStyle = '#f26b1d'; g.fillRect(0, 0, w * .2, h);
+  g.fillStyle = '#fff'; g.font = '700 64px "Baloo 2", Manrope, sans-serif'; g.textBaseline = 'middle'; g.fillText('Kautilya Cricket Academy', w * .24, h / 2 + 6);
+  g.font = '700 70px "Baloo 2", sans-serif'; g.fillText('KCA', w * .03, h / 2 + 6);
+});
+const boardMatC = new THREE.MeshStandardMaterial({map: boardTex, roughness: .6});
+const boardGeo = new THREE.BoxGeometry(5.6, .7, .06);
+for (let i = 0; i < 44; i++) {
+  const a = i / 44 * Math.PI * 2; if (Math.abs(Math.cos(a)) > .97) continue;   // keep the ends clear for the sight screens
+  const b = new THREE.Mesh(boardGeo, boardMatC); b.position.set(Math.sin(a) * (GR - .6), .38, FZ + Math.cos(a) * (GR - .6));
+  b.lookAt(0, .38, FZ); scene.add(b);
+}
+
+const netTex = canvasTex(256, 256, (g, w, h) => { g.clearRect(0, 0, w, h); g.strokeStyle = 'rgba(255,255,255,.75)'; g.lineWidth = 2; for (let i = 0; i <= w; i += 16) { g.beginPath(); g.moveTo(i, 0); g.lineTo(i, h); g.stroke(); g.beginPath(); g.moveTo(0, i); g.lineTo(w, i); g.stroke(); } });
+const netMat = new THREE.MeshStandardMaterial({map: tiled(netTex, 4, 2), transparent: true, side: THREE.DoubleSide, depthWrite: false, roughness: .9, alphaTest: .05});
+
+// basketball court, west of the ground, yellow and blue like the college's
+const bbX = -59;
+const bbTex = canvasTex(510, 900, (g, w, h) => {
+  const S = w / 17, X = x => (x + 8.5) * S, Z = z => (z + 15) * S;
+  g.fillStyle = '#2c5c9e'; g.fillRect(0, 0, w, h);
+  g.fillStyle = '#e8b53a'; g.fillRect(X(-7.5), Z(-14), 15 * S, 28 * S);
+  g.fillStyle = '#2c5c9e'; [-1, 1].forEach(e => g.fillRect(X(-2.45), e < 0 ? Z(-14) : Z(14 - 5.8), 4.9 * S, 5.8 * S));
+  g.beginPath(); g.arc(X(0), Z(0), 1.8 * S, 0, Math.PI * 2); g.fill();
+  g.strokeStyle = '#fff'; g.lineWidth = 2.5;
+  g.strokeRect(X(-7.5), Z(-14), 15 * S, 28 * S);
+  g.beginPath(); g.moveTo(X(-7.5), Z(0)); g.lineTo(X(7.5), Z(0)); g.stroke();
+  g.beginPath(); g.arc(X(0), Z(0), 1.8 * S, 0, Math.PI * 2); g.stroke();
+  [-1, 1].forEach(e => {
+    g.strokeRect(X(-2.45), e < 0 ? Z(-14) : Z(14 - 5.8), 4.9 * S, 5.8 * S);
+    g.beginPath(); g.arc(X(0), Z(e * 12.4), 6.75 * S, e < 0 ? .12 : Math.PI + .12, e < 0 ? Math.PI - .12 : Math.PI * 2 - .12); g.stroke();
+  });
+  speckle(g, w, h, 4000, ['rgba(0,0,0,.08)', 'rgba(255,255,255,.06)'], rng(61), 2);
+});
+const bb = new THREE.Mesh(new THREE.PlaneGeometry(17, 30), new THREE.MeshStandardMaterial({map: bbTex, roughness: .7}));
+bb.rotation.x = -Math.PI / 2; bb.position.set(bbX, .025, FZ); bb.receiveShadow = true; scene.add(bb);
+const rimMat = new THREE.MeshStandardMaterial({color: '#e0612b', roughness: .4, metalness: .3});
+const boardMat = new THREE.MeshStandardMaterial({color: '#ffffff', transparent: true, opacity: .75, roughness: .2});
+[-1, 1].forEach(e => {
+  const g = new THREE.Group(); g.position.set(bbX, 0, FZ + e * 15.2); g.rotation.y = e < 0 ? 0 : Math.PI;
+  const pole = new THREE.Mesh(new THREE.CylinderGeometry(.08, .1, 3.4, 12), metal); pole.position.set(0, 1.7, 0); pole.castShadow = true; g.add(pole);
+  const arm = new THREE.Mesh(new THREE.BoxGeometry(.1, .1, 1.2), metal); arm.position.set(0, 3.3, .6); g.add(arm);
+  const board = new THREE.Mesh(new THREE.BoxGeometry(1.8, 1.05, .04), boardMat); board.position.set(0, 3.45, 1.2); board.castShadow = true; g.add(board);
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(.23, .018, 8, 24), rimMat); rim.rotation.x = Math.PI / 2; rim.position.set(0, 3.05, 1.47); g.add(rim);
+  scene.add(g);
+});
+
+// the academy's practice nets, east of the stands
+const pitchTex = canvasTex(128, 768, (g, w, h) => {
+  g.fillStyle = '#8a8a52'; g.fillRect(0, 0, w, h); speckle(g, w, h, 2000, ['rgba(20,50,10,.25)', 'rgba(170,210,120,.15)'], rng(71), 2);
+  g.fillStyle = '#2f8a46'; g.fillRect(w * .18, h * .06, w * .64, h * .88);
+  speckle(g, w * .64, h, 1500, ['rgba(0,40,0,.25)', 'rgba(140,220,140,.15)'], rng(72), 2);
+  g.strokeStyle = '#fff'; g.lineWidth = 2; [.12, .88].forEach(y => { g.beginPath(); g.moveTo(w * .1, h * y); g.lineTo(w * .9, h * y); g.stroke(); });
+});
+const netSideMat = netMat.clone(); netSideMat.map = tiled(netTex.clone(), 12, 2);
+for (let i = 0; i < 3; i++) {
+  const x = 55 + i * 3.4;
+  const mat = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 24), new THREE.MeshStandardMaterial({map: pitchTex, roughness: .9}));
+  mat.rotation.x = -Math.PI / 2; mat.position.set(x, .025, FZ); mat.receiveShadow = true; scene.add(mat);
+  [-1.7, 1.7].forEach(dx => {
+    if (i > 0 && dx < 0) return;
+    const side = new THREE.Mesh(new THREE.PlaneGeometry(24, 3.2), netSideMat); side.rotation.y = Math.PI / 2; side.position.set(x + dx, 1.6, FZ); scene.add(side);
+    [-12, -4, 4, 12].forEach(z => { const p = new THREE.Mesh(new THREE.CylinderGeometry(.04, .04, 3.3, 8), metal); p.position.set(x + dx, 1.65, FZ + z); scene.add(p); });
+  });
+  for (const z of [-11, 11]) for (const dx of [-.11, 0, .11]) { const st = new THREE.Mesh(new THREE.CylinderGeometry(.018, .018, .72, 6), wood); st.position.set(x + dx, .36, FZ + z); scene.add(st); }
+}
+
+// pavilion stands on the east side, seats in orange and blue
+(() => {
+  const g = new THREE.Group(); g.position.set(GR + 2.4, 0, FZ);
+  const conc = new THREE.MeshStandardMaterial({color: '#b9bcc1', roughness: .9});
+  const seatA = new THREE.MeshStandardMaterial({color: '#1f4fa8', roughness: .6}), seatB = new THREE.MeshStandardMaterial({color: '#f26b1d', roughness: .6});
+  for (let t = 0; t < 6; t++) {
+    const step = new THREE.Mesh(new THREE.BoxGeometry(.9, .45 * (t + 1), 22), conc); step.position.set(t * .9, .225 * (t + 1), 0); step.castShadow = step.receiveShadow = true; g.add(step);
+    const seat = new THREE.Mesh(new THREE.BoxGeometry(.38, .08, 22), t % 2 ? seatB : seatA); seat.position.set(t * .9 - .1, .45 * (t + 1) + .04, 0); g.add(seat);
+  }
+  const roofS = new THREE.Mesh(new THREE.BoxGeometry(6.4, .16, 23), new THREE.MeshStandardMaterial({color: '#eef0f2', roughness: .6}));
+  roofS.position.set(2.6, 5.2, 0); roofS.rotation.z = -.08; roofS.castShadow = true; g.add(roofS);
+  [-11, -5.5, 0, 5.5, 11].forEach(z => { const c = new THREE.Mesh(new THREE.CylinderGeometry(.09, .09, 5.3, 10), metal); c.position.set(5.2, 2.65, z); g.add(c); });
+  scene.add(g);
+})();
+
+// floodlights on the diagonals
+[[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sz]) => {
+  const x = sx * 35, z = FZ + sz * 35;
+  const mast = new THREE.Mesh(new THREE.CylinderGeometry(.18, .32, 20, 12), new THREE.MeshStandardMaterial({color: '#8b8d90', metalness: .6, roughness: .5}));
+  mast.position.set(x, 10, z); mast.castShadow = true; scene.add(mast);
+  const head = new THREE.Group(); head.position.set(x, 20.4, z); head.lookAt(0, 0, FZ);
+  const frameH = new THREE.Mesh(new THREE.BoxGeometry(3.4, 1.8, .3), metal); head.add(frameH);
+  for (let i = 0; i < 4; i++) for (let j = 0; j < 2; j++) { const l = new THREE.Mesh(new THREE.CircleGeometry(.3, 20), new THREE.MeshBasicMaterial({color: new THREE.Color('#fff4dc').multiplyScalar(1.6)})); l.position.set(-1.2 + i * .8, -.42 + j * .84, .16); head.add(l); }
+  scene.add(head);
+});
+
+// the flag, by the building
+const flagTex = canvasTex(600, 400, (g, w, h) => {
+  g.fillStyle = '#FF9933'; g.fillRect(0, 0, w, h / 3); g.fillStyle = '#ffffff'; g.fillRect(0, h / 3, w, h / 3); g.fillStyle = '#138808'; g.fillRect(0, 2 * h / 3, w, h / 3);
+  const cx = w / 2, cy = h / 2, R = h / 3 * .42; g.strokeStyle = '#000080'; g.fillStyle = '#000080';
+  g.lineWidth = 5; g.beginPath(); g.arc(cx, cy, R, 0, Math.PI * 2); g.stroke();
+  g.beginPath(); g.arc(cx, cy, R * .18, 0, Math.PI * 2); g.fill();
+  g.lineWidth = 2; for (let i = 0; i < 24; i++) { const a = i / 24 * Math.PI * 2; g.beginPath(); g.moveTo(cx, cy); g.lineTo(cx + Math.cos(a) * R, cy + Math.sin(a) * R); g.stroke(); }
+});
+const FLAG_W = 2.4, FLAG_H = 1.6, POLE = 10;
+const flagGeo = new THREE.PlaneGeometry(FLAG_W, FLAG_H, 24, 12); flagGeo.translate(FLAG_W / 2, 0, 0);
+const flagBase = flagGeo.attributes.position.array.slice();
+const flag = new THREE.Mesh(flagGeo, new THREE.MeshStandardMaterial({map: flagTex, side: THREE.DoubleSide, roughness: .8}));
+const flagX = -9, flagZ = LZ - 7;
+flag.position.set(flagX + .06, POLE - FLAG_H / 2 - .1, flagZ); flag.rotation.y = .5; flag.castShadow = true; scene.add(flag);
+const flagPole = new THREE.Mesh(new THREE.CylinderGeometry(.05, .08, POLE, 12), white); flagPole.position.set(flagX, POLE / 2, flagZ); flagPole.castShadow = true; scene.add(flagPole);
+const plinth = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.3, .5, 24), new THREE.MeshStandardMaterial({color: '#9aa0a8', roughness: .8})); plinth.position.set(flagX, .25, flagZ); scene.add(plinth);
+
+// palms along the building and by the court, as on the campus
+(() => {
+  const trunkM = new THREE.MeshStandardMaterial({color: '#7a6248', roughness: 1});
+  const frondM = new THREE.MeshStandardMaterial({color: '#4f7a2e', roughness: .9, side: THREE.DoubleSide, flatShading: true});
+  const frond = new THREE.ConeGeometry(.42, 3.4, 4, 1, true); frond.translate(0, 1.7, 0); frond.scale(1, 1, .18);
+  const pr = rng(19);
+  [[-25, LZ - 4], [-31, LZ - 4.5], [-37, LZ - 4], [25, LZ - 4], [31, LZ - 4.5], [37, LZ - 4], [-49, FZ + 20], [-49, FZ - 20], [-69, FZ + 9], [-69, FZ - 9], [-14, 6], [14, 6]].forEach(([x, z]) => {
+    const hgt = 6 + pr() * 3, lean = (pr() - .5) * .6;
+    const curve = new THREE.QuadraticBezierCurve3(new THREE.Vector3(0, 0, 0), new THREE.Vector3(lean * .4, hgt * .5, 0), new THREE.Vector3(lean, hgt, lean * .3));
+    const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = pr() * 6;
+    const t = new THREE.Mesh(new THREE.TubeGeometry(curve, 10, .2, 7), trunkM); t.castShadow = true; g.add(t);
+    for (let i = 0; i < 9; i++) {
+      const f = new THREE.Mesh(frond, frondM); f.position.copy(curve.getPoint(1));
+      f.rotation.set(0, i / 9 * Math.PI * 2 + pr() * .3, 0); f.rotateX(1.05 + pr() * .5); f.castShadow = true; g.add(f);
+    }
+    scene.add(g);
+  });
+})();
+
+// trees: neem-like round canopies all round the ground
+const treePts = [], tr = rng(7);
+const addTree = (x, z, s) => { if (z > LZ - 3 && Math.abs(x) < BW / 2 + 3) return; if (Math.hypot(x, z - FZ) < GR + 9) return; treePts.push([x, z, s]); };
+for (let z = LZ - 6; z > FZ - 58; z -= small ? 9 : 6.5) { addTree(-76 + tr() * 4, z + tr() * 3, .9 + tr() * .6); addTree(70 - tr() * 4, z + tr() * 3, .9 + tr() * .6); }
+for (let x = -72; x <= 68; x += small ? 9 : 6.5) addTree(x + tr() * 3, FZ - 58 + tr() * 4, .9 + tr() * .6);
+for (let i = 0; i < (small ? 40 : 90); i++) { const a = tr() * Math.PI * 2, rr = 95 + tr() * 140; addTree(Math.cos(a) * rr, FZ + Math.sin(a) * rr, 1 + tr() * .9); }
+[[-24, 8], [24, 8], [-30, 3], [30, 3]].forEach(([x, z]) => treePts.push([x, z, 1.1]));
+const trunks = new THREE.InstancedMesh(new THREE.CylinderGeometry(.16, .26, 3, 7), new THREE.MeshStandardMaterial({color: '#4a3826', roughness: 1}), treePts.length);
+const crowns = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 1), new THREE.MeshStandardMaterial({roughness: .95, flatShading: true}), treePts.length * 2);
+const dm = new THREE.Object3D(), col = new THREE.Color();
+treePts.forEach(([x, z, s], i) => {
+  dm.position.set(x, 1.5 * s, z); dm.scale.set(s, s, s); dm.rotation.set(0, 0, 0); dm.updateMatrix(); trunks.setMatrixAt(i, dm.matrix);
+  for (let k = 0; k < 2; k++) {
+    dm.position.set(x + (k ? .9 : -.4) * s, (3.6 + k * .9) * s, z + (k ? -.5 : .3) * s); dm.rotation.set(tr(), tr(), tr());
+    dm.scale.set((2.6 - k * .7) * s, (2.1 - k * .4) * s, (2.6 - k * .7) * s); dm.updateMatrix(); crowns.setMatrixAt(i * 2 + k, dm.matrix);
+    col.setHSL(.24 + tr() * .06, .35 + tr() * .15, .2 + tr() * .08); crowns.setColorAt(i * 2 + k, col);
+  }
+});
+trunks.castShadow = crowns.castShadow = true; scene.add(trunks, crowns);
+
+// low hills on the horizon
+const hillMat = new THREE.MeshLambertMaterial({color: '#7b7286', flatShading: true});
+const hr = rng(83);
+for (let i = 0; i < 22; i++) {
+  const a = (i / 22) * Math.PI * 2 + hr() * .2, d = 380 + hr() * 160;
+  const hill = new THREE.Mesh(new THREE.ConeGeometry(50 + hr() * 50, 22 + hr() * 30, 7), hillMat);
+  hill.position.set(Math.cos(a) * d, 6, FZ + Math.sin(a) * d); hill.rotation.y = hr() * 3; scene.add(hill);
+}
+
+/* =================================================================
+   8. Photos: real files replace the cards as they arrive
+================================================================= */
+
+/* =================================================================
+   9. The walk: scroll position → one continuous camera path
+================================================================= */
+const V = (x, y, z) => new THREE.Vector3(x, y, z);
+const KEYS = [
+  [0,    V(0, 1.85, 9.6),         V(0, 2.05, 0)],
+  [.09,  V(0, 1.65, 5),           V(0, 1.7, -2)],
+  [.19,  V(0, 1.62, -1.2),        V(0, 1.6, -7)],
+  [.40,  V(0, 1.62, -14),         V(0, 1.6, -20)],
+  [.60,  V(0, 1.62, LZ + 2.6),    V(0, 1.6, LZ - 6)],
+  [.69,  V(0, 2.1, LZ - 5),       V(0, 1.3, LZ - 22)],
+  [.80,  V(6, 8, LZ - 17),        V(0, 0, FZ + 14)],
+  [.91,  V(26, 19, FZ - 12),      V(0, 0, FZ + 2)],
+  [1,    V(16, 34, FZ - 74),      V(0, 0, FZ + 8)],
+];
+const posCurve = new THREE.CatmullRomCurve3(KEYS.map(k => k[1]), false, 'centripetal');
+const lookCurve = new THREE.CatmullRomCurve3(KEYS.map(k => k[2]), false, 'centripetal');
+function curveU(p){
+  for (let i = 0; i < KEYS.length - 1; i++) if (p <= KEYS[i + 1][0]) return (i + (p - KEYS[i][0]) / (KEYS[i + 1][0] - KEYS[i][0])) / (KEYS.length - 1);
+  return 1;
+}
+
+const tour = document.getElementById('top');
+const ov = {hero: document.getElementById('ovHero'), cue: document.getElementById('cue'), lobby: document.getElementById('ovLobby'), cap: document.getElementById('ovCap'), ground: document.getElementById('ovGround')};
+const cap = {in: document.getElementById('capIn'), n: document.getElementById('capN'), t: document.getElementById('capT'), s: document.getElementById('capS'), cur: -1};
+const railBtns = [...document.querySelectorAll('#rail button')];
+const nav = document.getElementById('nav');
+const sticky = document.querySelector('.tour__sticky');
+railBtns.forEach(b => b.addEventListener('click', () => { const p = +b.dataset.p; lenis.scrollTo(tour.offsetTop + p * (tour.offsetHeight - innerHeight), {duration: 1.8}); }));
+
+const mouse = {x: 0, y: 0, sx: 0, sy: 0};
+if (fine) addEventListener('pointermove', e => { mouse.x = e.clientX / innerWidth * 2 - 1; mouse.y = e.clientY / innerHeight * 2 - 1; });
+
+let heroExtra = 0;
+function resize(){
+  const w = canvas.clientWidth, h = canvas.clientHeight; if (!w || !h) return;
+  renderer.setSize(w, h, false); composer.setPixelRatio(PR); composer.setSize(w, h); bloom.setSize(w, h);
+  camera.aspect = w / h; camera.fov = w / h < 1 ? 62 : 46; camera.updateProjectionMatrix();
+  // on a tall phone screen, stand further back so the whole picture fits
+  const hHalf = Math.atan(Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.aspect);
+  heroExtra = Math.max(0, (DW + 1.2) / (2 * Math.tan(hHalf)) - 9.6);
+}
+addEventListener('resize', resize); resize();
+
+let visible = true;
+new IntersectionObserver(([e]) => { visible = e.isIntersecting; }).observe(sticky);
+const clock = new THREE.Timer();
+const pos = new THREE.Vector3(), look = new THREE.Vector3();
+const showCap = i => {
+  if (i === cap.cur) return; cap.cur = i; cap.in.classList.add('swap');
+  setTimeout(() => { if (i >= 0) { const f = frames[i]; cap.n.textContent = `NO. ${String(f.k + 1).padStart(2, '0')}`; cap.t.textContent = f.title; cap.s.textContent = f.sub; } cap.in.classList.toggle('swap', i < 0); }, 220);
+};
+let first = true;
+function frame(){
+  requestAnimationFrame(frame);
+  const span = tour.offsetHeight - innerHeight;
+  const p = Math.min(1, Math.max(0, (scrollY - tour.offsetTop) / span));
+  nav.classList.toggle('is-solid', scrollY > tour.offsetTop + span - 40 || p > .02);
+  if (!visible && !first) return;
+  clock.update(); const t = clock.getElapsed();
+
+  mouse.sx += (mouse.x - mouse.sx) * .05; mouse.sy += (mouse.y - mouse.sy) * .05;
+  const u = curveU(p);
+  posCurve.getPoint(u, pos); lookCurve.getPoint(u, look);
+  pos.z += heroExtra * (1 - smooth(0, .17, p));
+  const inside = smooth(.15, .2, p) * (1 - smooth(.6, .66, p));
+  pos.y += Math.sin(pos.z * 2.4) * .012 * inside;
+  camera.position.set(pos.x + mouse.sx * .22, pos.y - mouse.sy * .08, pos.z);
+  camera.lookAt(look.x + mouse.sx * 1.1, look.y - mouse.sy * .4, look.z);
+  sky.position.copy(camera.position);
+
+  // the photo opens like a pair of doors; the glass doors open onto the ground
+  const a1 = ease(smooth(.025, .145, p)) * 1.72;
+  doorLeaves.forEach(({pivot, side}) => pivot.rotation.y = -side * a1);
+  seam.visible = a1 < .01;
+  const a2 = ease(smooth(.5, .62, p)) * 1.6;
+  glassLeaves.forEach(({pivot, side}) => pivot.rotation.y = -side * a2);
+  // without shadows nothing stops sunlight reaching the lobby, so the sun comes up as you step out
+  if (small) { const out = smooth(LZ + 3, LZ - 4, pos.z); sun.intensity = .35 + out * 2.35; }
+
+  // flag
+  const fp = flagGeo.attributes.position.array;
+  for (let i = 0; i < fp.length; i += 3) { const x = flagBase[i], y = flagBase[i + 1]; fp[i + 2] = Math.sin(x * 2.3 - t * 3.4 + y * .7) * .16 * (x / FLAG_W); fp[i + 1] = y - Math.sin(x * 1.4 - t * 2) * .03 * (x / FLAG_W); }
+  flagGeo.attributes.position.needsUpdate = true; flagGeo.computeVertexNormals();
+  for (let i = 0; i < dustN; i++) { dustPos[i * 3 + 1] += .0009; if (dustPos[i * 3 + 1] > CH) dustPos[i * 3 + 1] = 0; }
+  dustGeo.attributes.position.needsUpdate = true;
+
+  // words over the scene
+  const op = (el, v, dy = 14) => { el.style.opacity = v.toFixed(3); el.style.transform = el === ov.cap ? (innerWidth > 760 ? `translateY(calc(-50% + ${(1 - v) * dy}px))` : `translateY(${(1 - v) * dy}px)`) : `translateY(${(1 - v) * dy}px)`; };
+  op(ov.hero, 1 - smooth(.012, .06, p));
+  ov.cue.style.opacity = (1 - smooth(.005, .03, p)).toFixed(3);
+  op(ov.lobby, smooth(.17, .21, p) * (1 - smooth(.27, .31, p)));
+  op(ov.cap, smooth(.27, .31, p) * (1 - smooth(.56, .6, p)));
+  op(ov.ground, smooth(.74, .8, p));
+  sticky.style.setProperty('--shade', (1 - smooth(.2, .3, p) * (1 - smooth(.7, .76, p)) * .55).toFixed(3));
+  if (p > .2 && p < .6) {
+    let best = -1, bd = 1e9;
+    frames.forEach((f, i) => { const d = Math.abs(f.z - (pos.z - 3.6)); if (f.z < pos.z - .6 && d < bd && d < 3.4) { bd = d; best = i; } });
+    showCap(best);
+  }
+  const ch = p < .17 ? 0 : p < .66 ? 1 : 2;
+  railBtns.forEach((b, i) => b.classList.toggle('on', i === ch));
+
+  grade.uniforms.uTime.value = t;
+  composer.render();
+  if (first) { first = false; requestAnimationFrame(() => document.documentElement.classList.remove('is-loading')); }
+}
+renderer.compileAsync(scene, camera).catch(() => {}).finally(frame);
+
+/* ---- sections rise in as they arrive */
+const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), {rootMargin: '0px 0px -8% 0px'});
+document.querySelectorAll('[data-rise]').forEach(el => io.observe(el));
+</script>
+</body>
+</html>
